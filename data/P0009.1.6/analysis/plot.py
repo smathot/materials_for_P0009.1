@@ -23,6 +23,8 @@ from matplotlib import pyplot as plt
 
 plt.rc('font', family='Arial', size=10)
 
+xs = 5, 5
+s = 10, 5
 r = 12, 5
 hi = 24, 10
 

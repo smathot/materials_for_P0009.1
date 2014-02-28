@@ -40,6 +40,7 @@ class MyReader(EyelinkAscFolderReader):
 		"""
 
 		trialDict['maxHGazeErr'] = 0
+		trialDict['maxHFixErr'] = 0
 		# We set the baseline tracePhase already here, because for some reason
 		# the start_phase and start_trial messages got flipped in the datafile
 		# on some trials.
@@ -84,3 +85,7 @@ class MyReader(EyelinkAscFolderReader):
 			if smp != None:
 				trialDict['maxHGazeErr'] = max(abs(smp['x'] - xc), \
 					trialDict['maxHGazeErr'])
+			fix = self.toFixation(l)
+			if fix != None:
+				trialDict['maxHFixErr'] = max(abs(fix['x'] - xc), \
+					trialDict['maxHFixErr'])
