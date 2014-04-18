@@ -21,19 +21,13 @@ along with P0009.1.  If not, see <http://www.gnu.org/licenses/>.
 import sys
 import os
 from analysis import helpers
-from analysis.parse import MyReader
+from analysis.parse import getDataMatrix
 from exparser.DataMatrix import DataMatrix
 
-# Read the parsed data from cache or re-parse the data if necessary/ asked for.
-cachePath = 'cache/data.npy'
-if '--parse' in sys.argv or not os.path.exists(cachePath):
-	dm = MyReader(blinkReconstruct=True).dataMatrix()
-	dm.save(cachePath)
-else:
-	dm = DataMatrix(cachePath)
+dm = getDataMatrix(cacheId='data')
 # First filter the data and then perform all operations that have been specified
 # on the command line.
-dm = helpers.filter(dm)
+dm = helpers.filter(dm, cacheId='cache')
 for i in sys.argv:
 	if hasattr(helpers, i):
 		retval = getattr(helpers, i)(dm)

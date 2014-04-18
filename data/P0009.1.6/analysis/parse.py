@@ -20,6 +20,7 @@ along with P0009.1.  If not, see <http://www.gnu.org/licenses/>.
 import sys
 import numpy as np
 from exparser.EyelinkAscFolderReader import EyelinkAscFolderReader
+from exparser.Cache import cachedDataMatrix
 from matplotlib import pyplot as plt
 
 # Display center
@@ -89,3 +90,7 @@ class MyReader(EyelinkAscFolderReader):
 			if fix != None:
 				trialDict['maxHFixErr'] = max(abs(fix['x'] - xc), \
 					trialDict['maxHFixErr'])
+
+@cachedDataMatrix
+def getDataMatrix():
+	return MyReader(blinkReconstruct=True).dataMatrix()

@@ -27,6 +27,7 @@ from exparser import TraceKit as tk
 from exparser.PivotMatrix import PivotMatrix
 from exparser.TangoPalette import *
 from exparser.RBridge import RBridge
+from exparser.Cache import cachedDataMatrix, cachedArray
 from scipy.stats import linregress
 
 # The parameters to extract the pupil trace for the various epochs
@@ -40,9 +41,9 @@ trialParams = {
 	}
 
 # The window size for the lme. (production value: 1)
-winSize = 10
+winSize = 1
 # The number of simulations for the lme. (production value: 1000)
-nsim = 100
+nsim = 1000
 # Stimulus durations.
 cueDur = 50
 targetDur = 50
@@ -53,6 +54,8 @@ gazeCheckMethod = 'fixation'
 # Some colors for the plots
 valColor = green[1]
 invColor = red[1]
+# The model to be used for the mixed-model trace
+traceModel = 'cueLum + (1|subject_nr)'
 
 def corrExample(dm):
 
@@ -65,7 +68,8 @@ def corrExample(dm):
 	"""
 
 	dm = dm.select('soa == 2445')
-	a = corrTrace(dm, soa=2445, dv='correct', suffix='acc')
+	a = corrTrace(dm, soa=2445, dv='correct', suffix='acc', \
+		cacheId='corrTrace.correct')
 	bestSample = np.argmax(a[:,0])
 	xData = []
 	yData = []
@@ -109,23 +113,24 @@ def corrPlot(dm):
 	# Target shading
 	plt.axvspan(2500, 2500+targetDur, color=blue[1], alpha=.2)
 	# Accuracy
-	a = corrTrace(dm, soa=2445, dv='correct', suffix='acc')
+	a = corrTrace(dm, soa=2445, dv='correct', suffix='acc', \
+		cacheId='corrTrace.correct')
 	tk.markStats(plt.gca(), a[:,1])
 	plt.plot(a[:,0], label='Accuracy', color=blue[1])
 	# RTs
-	a = corrTrace(dm, soa=2445, dv='response_time', suffix='rt')
+	a = corrTrace(dm, soa=2445, dv='response_time', suffix='rt', \
+		cacheId='corrTrace.rt')
 	tk.markStats(plt.gca(), a[:,1])
 	plt.plot(a[:,0], label='Response times', color=orange[1])
 	plt.legend(frameon=False, loc='upper left')
 	plot.save('corrAnalysis', show=True)
 
+@cachedArray
 def corrTrace(dm, soa=2445, dv='correct', suffix=''):
 
 	"""
 	Calculates the correlation between the behavioral cuing effect and the
 	pupil-size cuing effect.
-
-	NOTE: This function is cached.
 
 	Arguments:
 	dm		--	A DataMatrix.
@@ -141,10 +146,6 @@ def corrTrace(dm, soa=2445, dv='correct', suffix=''):
 	"""
 
 	assert(soa in dm.unique('soa'))
-	cachePath = 'cache/corrTrace%s.npy' % suffix
-	if os.path.exists(cachePath) and not '--no-cache' in sys.argv:
-		print 'Retrieving corrTrace from cache (%s)' % cachePath
-		return np.load(cachePath)
 	dm = dm.select('soa == %d' % soa)
 	a = np.zeros((soa+55, 2))
 	for i in range(0, soa+55, winSize):
@@ -161,7 +162,6 @@ def corrTrace(dm, soa=2445, dv='correct', suffix=''):
 		a[i:i+winSize, 0] = r
 		a[i:i+winSize, 1] = p
 		print '%d: r = %.4f, p = %.4f' % (i, r, p)
-	np.save(cachePath, a)
 	return a
 
 def cuingEffectBehav(dm, dv='response_time'):
@@ -246,6 +246,7 @@ def descriptives(dm):
 	pm._print('Accuracy')
 	pm.linePlot(show=True)
 
+@cachedDataMatrix
 def filter(dm):
 
 	"""
@@ -295,7 +296,8 @@ def tracePlot(dm, traceParams=trialParams, suffix='', err=True):
 	x2, y2, err2 = tk.getTraceAvg(dm.select('cueLum == "dark"'), **traceParams)
 	if err:
 		d = y2-y1
-		aErr = lmeTrace(dm, traceParams=traceParams, suffix=suffix)
+		aErr = lmeTrace(dm, traceParams=traceParams, suffix=suffix, \
+			cacheId='lmeTrace')
 		aP = aErr[:,0]
 		aLo = aErr[:,1]
 		aHi = aErr[:,2]
@@ -308,8 +310,8 @@ def tracePlot(dm, traceParams=trialParams, suffix='', err=True):
 		plt.fill_between(x1, y1min, y1max, color=green[1], alpha=.25)
 		plt.fill_between(x2, y2min, y2max, color=blue[1], alpha=.25)
 		tk.markStats(plt.gca(), aP)
-	plt.plot(x1, y1, color=green[1])
-	plt.plot(x2, y2, color=blue[1])
+	plt.plot(x1, y1, color=green[1], label='Cue on bright')
+	plt.plot(x2, y2, color=blue[1], label='Cue on dark')
 
 def trialPlot(dm, show=True, err=True, suffix=''):
 
@@ -336,6 +338,7 @@ def trialPlot(dm, show=True, err=True, suffix=''):
 	plt.axvspan(0, cueDur, color=blue[1], alpha=.2)
 	# Target
 	plt.axvspan(2500, 2500+targetDur, color=blue[1], alpha=.2)
+	plt.legend(frameon=False)
 	if show:
 		plot.save('trialPlot', show=True)
 
@@ -411,13 +414,12 @@ def lmeBehavior(dm):
 		plt.legend(frameon=False)
 	plot.save('behavior', show=True)
 
+@cachedArray
 def lmeTrace(dm, traceParams=trialParams, suffix=''):
 
 	"""
 	Performs the lme analysis for the cueLum Bright vs Dark contrast. To speed
 	up the analysis, the results are cached.
-
-	NOTE: This function is cached.
 
 	Arguments:
 	dm		--	A DataMatrix.
@@ -431,13 +433,8 @@ def lmeTrace(dm, traceParams=trialParams, suffix=''):
 	samples.
 	"""
 
-	cachePath = 'cache/lmeTrace%s.npy' % suffix
-	if os.path.exists(cachePath) and not '--no-cache' in sys.argv:
-		print 'Retrieving lmeTrace from cache (%s)' % cachePath
-		return np.load(cachePath)
-	a = tk.mixedModelTrace(dm, ['cueLum'], ['subject_nr'], winSize= \
-		winSize, nSim=nsim, **traceParams)
-	np.save(cachePath, a)
+	a = tk.mixedModelTrace(dm, traceModel, winSize= winSize, nSim=nsim, \
+		**traceParams)
 	return a
 
 def subjectPlot(dm):
