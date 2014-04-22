@@ -41,9 +41,7 @@ trialParams = {
 	}
 
 # The window size for the lme. (production value: 1)
-winSize = 1
-# The number of simulations for the lme. (production value: 1000)
-nsim = 1000
+winSize = 5
 # Stimulus durations.
 cueDur = 50
 targetDur = 50
@@ -56,8 +54,28 @@ valColor = green[1]
 invColor = red[1]
 # The model to be used for the mixed-model trace
 traceModel = 'cueLum + (1|subject_nr)'
+# Indicates whether plots should be shown or only saved to disk
+show = True
 
-def corrExample(dm):
+def __fullPathway__(dm):
+
+	"""
+	Runs the full analysis pathway.
+
+	Arguments:
+	dm		--	A DataMatrix.
+	"""
+
+	global show
+	show = False
+	descriptives(dm)
+	lmeBehavior(dm)
+	trialPlot1000(dm)
+	trialPlot2500(dm)
+	corrPlot1000(dm)
+	corrPlot2500(dm)
+
+def corrExample(dm, soa):
 
 	"""
 	Plots an example of the correlation between behavior and pupil size at the
@@ -67,9 +85,9 @@ def corrExample(dm):
 	dm		--	A DataMatrix.
 	"""
 
-	dm = dm.select('soa == 2445')
-	a = corrTrace(dm, soa=2445, dv='correct', suffix='acc', \
-		cacheId='corrTrace.correct')
+	dm = dm.select('soa == %d' % soa)
+	a = corrTrace(dm, soa=soa, dv='correct', suffix='acc', \
+		cacheId='corrTrace.correct.%d' % soa)
 	bestSample = np.argmax(a[:,0])
 	xData = []
 	yData = []
@@ -91,9 +109,9 @@ def corrExample(dm):
 	plt.plot(xData, yData, 'o', color='black')
 	plt.ylabel('Behav. cuing effect (%)')
 	plt.xlabel('Pupil cuing effect (norm.)')
-	plot.save('corrExample', show=True)
+	plot.save('corrExample.%d' % soa, show=show)
 
-def corrPlot(dm):
+def corrPlot(dm, soa):
 
 	"""
 	Plots and analyzes the correlation between the cuing effect in behavior and
@@ -111,19 +129,45 @@ def corrPlot(dm):
 	# Cue shading
 	plt.axvspan(0, cueDur, color=blue[1], alpha=.2)
 	# Target shading
-	plt.axvspan(2500, 2500+targetDur, color=blue[1], alpha=.2)
+	targetOnset = soa+55
+	plt.axvspan(targetOnset, targetOnset+targetDur, color=blue[1], alpha=.2)
+	plt.xlim(0, 2500)
 	# Accuracy
-	a = corrTrace(dm, soa=2445, dv='correct', suffix='acc', \
-		cacheId='corrTrace.correct')
+	a = corrTrace(dm, soa=soa, dv='correct', suffix='acc', \
+		cacheId='corrTrace.correct.%d' % soa)
 	tk.markStats(plt.gca(), a[:,1])
 	plt.plot(a[:,0], label='Accuracy', color=blue[1])
 	# RTs
-	a = corrTrace(dm, soa=2445, dv='response_time', suffix='rt', \
-		cacheId='corrTrace.rt')
+	a = corrTrace(dm, soa=soa, dv='response_time', suffix='rt', \
+		cacheId='corrTrace.rt.%d' % soa)
 	tk.markStats(plt.gca(), a[:,1])
 	plt.plot(a[:,0], label='Response times', color=orange[1])
 	plt.legend(frameon=False, loc='upper left')
-	plot.save('corrAnalysis', show=True)
+	plot.save('corrAnalysis.%d' % soa, show=show)
+
+def corrPlot1000(dm):
+
+	"""
+	A pupil-trace plot for the full trial epoch in 1000 ms SOA condition.
+
+	Arguments:
+	dm				--	A DataMatrix.
+	"""
+
+	corrPlot(dm, soa=945)
+	corrExample(dm, soa=945)
+
+def corrPlot2500(dm):
+
+	"""
+	A pupil-trace plot for the full trial epoch in 2500 ms SOA condition.
+
+	Arguments:
+	dm				--	A DataMatrix.
+	"""
+
+	corrPlot(dm, soa=2445)
+	corrExample(dm, soa=2445)
 
 @cachedArray
 def corrTrace(dm, soa=2445, dv='correct', suffix=''):
@@ -239,12 +283,12 @@ def descriptives(dm):
 		dv='response_time')
 	pm.save('output/rt.csv')
 	pm._print('Correct RT')
-	pm.linePlot(show=True)
+	pm.linePlot(show=show)
 	pm = PivotMatrix(dm, ['cueValidity', 'soa'], ['subject_nr'], \
 		dv='correct')
 	pm.save('output/acc.csv')
 	pm._print('Accuracy')
-	pm.linePlot(show=True)
+	pm.linePlot(show=show)
 
 @cachedDataMatrix
 def filter(dm):
@@ -297,8 +341,8 @@ def tracePlot(dm, traceParams=trialParams, suffix='', err=True):
 	if err:
 		d = y2-y1
 		aErr = lmeTrace(dm, traceParams=traceParams, suffix=suffix, \
-			cacheId='lmeTrace')
-		aP = aErr[:,0]
+			cacheId='lmeTrace%s' % suffix)
+		aT = aErr[:,0]
 		aLo = aErr[:,1]
 		aHi = aErr[:,2]
 		minErr = (d-aLo)/2
@@ -309,17 +353,18 @@ def tracePlot(dm, traceParams=trialParams, suffix='', err=True):
 		y2max = y2 + maxErr
 		plt.fill_between(x1, y1min, y1max, color=green[1], alpha=.25)
 		plt.fill_between(x2, y2min, y2max, color=blue[1], alpha=.25)
-		tk.markStats(plt.gca(), aP)
+		tk.markStats(plt.gca(), aT, below=False, thr=2)
 	plt.plot(x1, y1, color=green[1], label='Cue on bright')
 	plt.plot(x2, y2, color=blue[1], label='Cue on dark')
 
-def trialPlot(dm, show=True, err=True, suffix=''):
+def trialPlot(dm, soa, show=show, err=True, suffix=''):
 
 	"""
 	A pupil-trace plot for the full trial epoch.
 
 	Arguments:
 	dm				--	A DataMatrix.
+	soa				--	The SOA to select.
 
 	Keyword arguments:
 	show			--	Indicates whether the plot should be shown.
@@ -329,18 +374,48 @@ def trialPlot(dm, show=True, err=True, suffix=''):
 	suffix			--	A suffix to identify the trace. (default='')
 	"""
 
+	assert(soa in dm.unique('soa'))
 	if show:
 		plot.new()
 	plt.axhline(1, linestyle='--', color='black')
-	dm = dm.select('soa == 2445')
-	tracePlot(dm, err=err, suffix=suffix)
+	dm = dm.select('soa == %d' % soa)
+	# Determine the trace length and create the trace plot
+	traceLen = soa + 55
+	traceParams = trialParams.copy()
+	traceParams['traceLen'] = traceLen
+	tracePlot(dm, traceParams=traceParams, err=err, \
+		suffix='.%d%s' % (soa, suffix))
 	# Cue
 	plt.axvspan(0, cueDur, color=blue[1], alpha=.2)
-	# Target
-	plt.axvspan(2500, 2500+targetDur, color=blue[1], alpha=.2)
+	# Target. Take into account to cue duration in determining the target onset.
+	targetOnset = soa+55
+	plt.axvspan(targetOnset, targetOnset+targetDur, color=blue[1], alpha=.2)
+	plt.xlim(0, 2500)
 	plt.legend(frameon=False)
 	if show:
-		plot.save('trialPlot', show=True)
+		plot.save('trialPlot.%d' % soa, show=show)
+
+def trialPlot1000(dm):
+
+	"""
+	A pupil-trace plot for the full trial epoch in 1000 ms SOA condition.
+
+	Arguments:
+	dm				--	A DataMatrix.
+	"""
+
+	trialPlot(dm, soa=945)
+
+def trialPlot2500(dm):
+
+	"""
+	A pupil-trace plot for the full trial epoch in 2500 ms SOA condition.
+
+	Arguments:
+	dm				--	A DataMatrix.
+	"""
+
+	trialPlot(dm, soa=2445)
 
 def lmeBehavior(dm):
 
@@ -358,6 +433,7 @@ def lmeBehavior(dm):
 		plt.subplot(1,2,i)
 		R.load(dm)
 		lm = R.lmer('%s ~ cueValidity * soa + (1|subject_nr)' % dv)
+		lm.save('output/lmeBehavior.%s.csv' % dv)
 		lm._print(title=dv, sign=10)
 		lSoa = []
 		lVal = []
@@ -366,13 +442,14 @@ def lmeBehavior(dm):
 			_dm = dm.select('soa == %d' % soa, verbose=False)
 			R.load(_dm)
 			lm = R.lmer('%s ~ cueValidity + (1|subject_nr)' % dv)
+			lm.save('output/lmeBehavior.%s.%d.csv' % (dv, soa))
 			lm._print(title='%s (%d)' % (dv, soa), sign=10)
 			mInv = lm['est'][0] # Invalid is reference
 			mVal = mInv + lm['est'][1] #4Add slope for validity effect
 			d = lm['est'][1]
 			m = mInv + .5*d
-			minD = lm['ci95lo'][1]
-			maxD = lm['ci95up'][1]
+			minD = d - lm['se'][1]
+			maxD = d + lm['se'][1]
 			# Determine error bars based on the slope CIs
 			cInv = [m-minD/2, m-maxD/2]
 			cVal = [m+minD/2, m+maxD/2]
@@ -412,7 +489,7 @@ def lmeBehavior(dm):
 		plt.plot(lSoa, lInv, 'o-', color=invColor, label='Invalid (N=%d)' % \
 			nInv)
 		plt.legend(frameon=False)
-	plot.save('behavior', show=True)
+	plot.save('behavior', show=show)
 
 @cachedArray
 def lmeTrace(dm, traceParams=trialParams, suffix=''):
@@ -433,8 +510,9 @@ def lmeTrace(dm, traceParams=trialParams, suffix=''):
 	samples.
 	"""
 
-	a = tk.mixedModelTrace(dm, traceModel, winSize= winSize, nSim=nsim, \
-		**traceParams)
+	_dm = dm.selectColumns(['cueLum', 'subject_nr', '__trace_trial__', \
+		'__trace_baseline__'])
+	a = tk.mixedModelTrace(_dm, traceModel, winSize= winSize, **traceParams)
 	return a
 
 def subjectPlot(dm):
@@ -456,10 +534,8 @@ def subjectPlot(dm):
 		trialPlot(_dm, show=False, err=False, suffix='.subject%.2d' % \
 			subject_nr)
 		i += 1
-	plot.save('subjectPlot', show=True)
+	plot.save('subjectPlot', show=show)
 
 # Sanity checks
 if winSize != 1:
 	warnings.warn('winSize should be 1 for production!')
-if nsim != 1000:
-	warnings.warn('nsim should be 1000 for production!')
