@@ -30,7 +30,7 @@ This analysis recipe is provided so that the original analysis can be replicated
 
 - `analyze.py` is the main analysis script.
 - `analysis/*.py` is the Python package that contains the actual analysis scripts.
-- `EDF/exp1/*.lzma` contains the original `.edf` per-participant data files as recorded by the EyeLink, compressed in `.lzma` format.
+- `EDF/*.lzma` contains the original `.edf` per-participant data files as recorded by the EyeLink, compressed in `.lzma` format.
 
 The following folders are filled with intermediate files by the analysis scripts, but are not necessary to run the analysis from scratch (and therefore not included in the repository).
 

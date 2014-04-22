@@ -21,13 +21,13 @@ import os
 import sys
 import numpy as np
 import warnings
-from analysis import plot
 from matplotlib import pyplot as plt
 from exparser import TraceKit as tk
 from exparser.PivotMatrix import PivotMatrix
 from exparser.TangoPalette import *
 from exparser.RBridge import RBridge
 from exparser.Cache import cachedDataMatrix, cachedArray
+from exparser import Plot
 from scipy.stats import linregress
 
 # The parameters to extract the pupil trace for the various epochs
@@ -41,7 +41,7 @@ trialParams = {
 	}
 
 # The window size for the lme. (production value: 1)
-winSize = 5
+winSize = 1
 # Stimulus durations.
 cueDur = 50
 targetDur = 50
@@ -72,46 +72,59 @@ def __fullPathway__(dm):
 	lmeBehavior(dm)
 	trialPlot1000(dm)
 	trialPlot2500(dm)
+	corrPlot100_2500(dm)
 	corrPlot1000(dm)
 	corrPlot2500(dm)
 
-def corrExample(dm, soa):
+def corrExample(dm, soaBehav, soaPupil, dv='correct'):
 
 	"""
 	Plots an example of the correlation between behavior and pupil size at the
 	most strongly correlating point.
 
 	Arguments:
-	dm		--	A DataMatrix.
+	dm			--	A DataMatrix.
+	soaBehav	--	The SOA to analyze for the behavioral effect.
+	soaPupil	--	The SOA to analyze for the pupil effect.
+
+	Keyword arguments:
+	dv			--	The dependent variable to use for the behavioral effect.
+					(default='correct')
 	"""
 
-	dm = dm.select('soa == %d' % soa)
-	a = corrTrace(dm, soa=soa, dv='correct', suffix='acc', \
-		cacheId='corrTrace.correct.%d' % soa)
+	assert(soaPupil in dm.unique('soa'))
+	assert(soaBehav in dm.unique('soa'))
+	a = corrTrace(dm, soaBehav, soaPupil, dv='correct', suffix='acc', \
+		cacheId='corrTrace.correct.%d.%d' % (soaBehav, soaPupil))
 	bestSample = np.argmax(a[:,0])
+	dmBehav = dm.select('soa == %d' % soaBehav)
+	dmPupil = dm.select('soa == %d' % soaPupil)
 	xData = []
 	yData = []
-	for _dm in dm.group('subject_nr'):
-		subject_nr = _dm['subject_nr'][0]
-		ceb = cuingEffectBehav(_dm, dv='correct')
-		cep = cuingEffectPupil(_dm, epoch=(bestSample, bestSample+1))
-		print '%.2d %.4f %.4f' % (subject_nr, ceb, cep)
+	print 'pp\tbehav\tpupil'
+	for subject_nr in dm.unique('subject_nr'):
+		ceb = cuingEffectBehav(dmBehav.select('subject_nr == %d' \
+			% subject_nr, verbose=False), dv=dv)
+		cep = cuingEffectPupil(dmPupil.select('subject_nr == %d' \
+			% subject_nr, verbose=False), epoch=(bestSample, \
+			bestSample+winSize))
+		print '%.2d\t %.4f\t%.4f' % (subject_nr, ceb, cep)
 		yData.append(100.*ceb)
 		xData.append(cep)
 	s, _i, r, p, se = linregress(xData, yData)
 	print '%d: r = %.4f, p = %.4f' % (bestSample, r, p)
 	xFit = np.array([min(xData), max(xData)])
 	yFit = _i + s*xFit
-	plot.new(size=plot.xs)
+	Plot.new(size=Plot.xs)
 	plt.plot(xFit, yFit, '-', color='black')
 	plt.axhline(0, linestyle='--', color='black')
 	plt.axvline(0, linestyle='--', color='black')
 	plt.plot(xData, yData, 'o', color='black')
 	plt.ylabel('Behav. cuing effect (%)')
 	plt.xlabel('Pupil cuing effect (norm.)')
-	plot.save('corrExample.%d' % soa, show=show)
+	Plot.save('corrExample.%d.%d' % (soaBehav, soaPupil), show=show)
 
-def corrPlot(dm, soa):
+def corrPlot(dm, soaBehav, soaPupil):
 
 	"""
 	Plots and analyzes the correlation between the cuing effect in behavior and
@@ -119,9 +132,11 @@ def corrPlot(dm, soa):
 
 	Arguments:
 	dm		--	A DataMatrix.
+	soaBehav	--	The SOA to analyze for the behavioral effect.
+	soaPupil	--	The SOA to analyze for the pupil effect.
 	"""
 
-	plot.new()
+	Plot.new(size=Plot.w)
 	plt.ylim(-.2, 1)
 	plt.xlabel('Time since cue onset (ms)')
 	plt.ylabel('Behavior - pupil correlation (r)')
@@ -129,82 +144,100 @@ def corrPlot(dm, soa):
 	# Cue shading
 	plt.axvspan(0, cueDur, color=blue[1], alpha=.2)
 	# Target shading
-	targetOnset = soa+55
+	targetOnset = soaPupil+55
 	plt.axvspan(targetOnset, targetOnset+targetDur, color=blue[1], alpha=.2)
 	plt.xlim(0, 2500)
 	# Accuracy
-	a = corrTrace(dm, soa=soa, dv='correct', suffix='acc', \
-		cacheId='corrTrace.correct.%d' % soa)
+	a = corrTrace(dm, soaBehav, soaPupil, dv='correct', suffix='acc', \
+		cacheId='corrTrace.correct.%d.%d' % (soaBehav, soaPupil))
 	tk.markStats(plt.gca(), a[:,1])
 	plt.plot(a[:,0], label='Accuracy', color=blue[1])
 	# RTs
-	a = corrTrace(dm, soa=soa, dv='response_time', suffix='rt', \
-		cacheId='corrTrace.rt.%d' % soa)
+	a = corrTrace(dm, soaBehav, soaPupil, dv='response_time', suffix='rt', \
+		cacheId='corrTrace.rt.%d.%d' % (soaBehav, soaPupil))
 	tk.markStats(plt.gca(), a[:,1])
 	plt.plot(a[:,0], label='Response times', color=orange[1])
 	plt.legend(frameon=False, loc='upper left')
-	plot.save('corrAnalysis.%d' % soa, show=show)
+	Plot.save('corrAnalysis.%d.%d' % (soaBehav, soaPupil), show=show)
+
+def corrPlot100_2500(dm):
+
+	"""
+	A correlation plot between the behavioral response in the 100 ms SOA and
+	the pupil trace in 2500 ms SOA.
+
+	Arguments:
+	dm				--	A DataMatrix.
+	"""
+
+	corrPlot(dm, 45, 2445)
+	corrExample(dm, 45, 2445)
 
 def corrPlot1000(dm):
 
 	"""
-	A pupil-trace plot for the full trial epoch in 1000 ms SOA condition.
+	A behavior-pupil correlation plot for the 1000 ms SOA.
 
 	Arguments:
 	dm				--	A DataMatrix.
 	"""
 
-	corrPlot(dm, soa=945)
-	corrExample(dm, soa=945)
+	corrPlot(dm, 945, 945)
+	corrExample(dm, 945, 945)
 
 def corrPlot2500(dm):
 
 	"""
-	A pupil-trace plot for the full trial epoch in 2500 ms SOA condition.
+	A behavior-pupil correlation plot for the 2500 ms SOA.
 
 	Arguments:
 	dm				--	A DataMatrix.
 	"""
 
-	corrPlot(dm, soa=2445)
-	corrExample(dm, soa=2445)
+	corrPlot(dm, 2445, 2445)
+	corrExample(dm, 2445, 2445)
 
 @cachedArray
-def corrTrace(dm, soa=2445, dv='correct', suffix=''):
+def corrTrace(dm, soaBehav, soaPupil, dv='correct', suffix=''):
 
 	"""
 	Calculates the correlation between the behavioral cuing effect and the
 	pupil-size cuing effect.
 
 	Arguments:
-	dm		--	A DataMatrix.
+	dm			--	A DataMatrix.
+	soaBehav	--	The SOA to analyze for the behavioral effect.
+	soaPupil	--	The SOA to analyze for the pupil effect.
 
 	Keyword arguments:
-	soa		--	The soa to analyze. (default=2445)
-	dv		--	The dependent variable to use for the behavioral cuing effect.
-				(default='correct')
-	suffix	--	A suffix to identify the trace for caching. (default='')
+	dv			--	The dependent variable to use for the behavioral cuing
+					effect. (default='correct')
+	suffix		--	A suffix to identify the trace for caching. (default='')
 
 	Returns:
 	A 2D numpy array r- and p-values for each sample.
 	"""
 
-	assert(soa in dm.unique('soa'))
-	dm = dm.select('soa == %d' % soa)
-	a = np.zeros((soa+55, 2))
-	for i in range(0, soa+55, winSize):
+	assert(soaPupil in dm.unique('soa'))
+	assert(soaBehav in dm.unique('soa'))
+	dmBehav = dm.select('soa == %d' % soaBehav)
+	dmPupil = dm.select('soa == %d' % soaPupil)
+	a = np.zeros((soaPupil+55, 2))
+	for i in range(0, soaPupil+55, winSize):
 		xData = []
 		yData = []
-		for _dm in dm.group('subject_nr'):
-			subject_nr = _dm['subject_nr'][0]
-			ceb = cuingEffectBehav(_dm, dv=dv)
-			cep = cuingEffectPupil(_dm, epoch=(i, i+winSize))
+		for subject_nr in dm.unique('subject_nr'):
+			ceb = cuingEffectBehav(dmBehav.select('subject_nr == %d' \
+				% subject_nr, verbose=False), dv=dv)
+			cep = cuingEffectPupil(dmPupil.select('subject_nr == %d' \
+				% subject_nr, verbose=False), epoch=(i, i+winSize))
 			print '%.2d %.4f %.4f' % (subject_nr, ceb, cep)
 			yData.append(ceb)
 			xData.append(cep)
 		s, _i, r, p, se = linregress(xData, yData)
 		a[i:i+winSize, 0] = r
 		a[i:i+winSize, 1] = p
+		print 'soaBehav: %d, soaPupil: %d' % (soaBehav, soaPupil)
 		print '%d: r = %.4f, p = %.4f' % (i, r, p)
 	return a
 
@@ -353,11 +386,11 @@ def tracePlot(dm, traceParams=trialParams, suffix='', err=True):
 		y2max = y2 + maxErr
 		plt.fill_between(x1, y1min, y1max, color=green[1], alpha=.25)
 		plt.fill_between(x2, y2min, y2max, color=blue[1], alpha=.25)
-		tk.markStats(plt.gca(), aT, below=False, thr=2)
+		tk.markStats(plt.gca(), np.abs(aT), below=False, thr=2, minSmp=200)
 	plt.plot(x1, y1, color=green[1], label='Cue on bright')
 	plt.plot(x2, y2, color=blue[1], label='Cue on dark')
 
-def trialPlot(dm, soa, show=show, err=True, suffix=''):
+def trialPlot(dm, soa, _show=show, err=True, suffix=''):
 
 	"""
 	A pupil-trace plot for the full trial epoch.
@@ -375,12 +408,12 @@ def trialPlot(dm, soa, show=show, err=True, suffix=''):
 	"""
 
 	assert(soa in dm.unique('soa'))
-	if show:
-		plot.new()
+	if _show:
+		Plot.new(size=Plot.ws)
 	plt.axhline(1, linestyle='--', color='black')
 	dm = dm.select('soa == %d' % soa)
 	# Determine the trace length and create the trace plot
-	traceLen = soa + 55
+	traceLen = soa + 105
 	traceParams = trialParams.copy()
 	traceParams['traceLen'] = traceLen
 	tracePlot(dm, traceParams=traceParams, err=err, \
@@ -390,10 +423,15 @@ def trialPlot(dm, soa, show=show, err=True, suffix=''):
 	# Target. Take into account to cue duration in determining the target onset.
 	targetOnset = soa+55
 	plt.axvspan(targetOnset, targetOnset+targetDur, color=blue[1], alpha=.2)
-	plt.xlim(0, 2500)
+	plt.xlim(0, 2550)
 	plt.legend(frameon=False)
-	if show:
-		plot.save('trialPlot.%d' % soa, show=show)
+	plt.xlabel('Time since cue onset (ms)')
+	plt.ylabel('Pupil size (norm.)')
+	plt.ylim(.98, 1.07)
+	plt.yticks([1,1.025, 1.05])
+	plt.xticks(range(0, 2501, 500))
+	if _show:
+		Plot.save('trialPlot.%d' % soa, show=show)
 
 def trialPlot1000(dm):
 
@@ -428,7 +466,7 @@ def lmeBehavior(dm):
 
 	R = RBridge()
 	i = 1
-	plot.new(size=plot.s)
+	Plot.new(size=Plot.ws)
 	for dv in ['correct', 'irt']:
 		plt.subplot(1,2,i)
 		R.load(dm)
@@ -489,7 +527,7 @@ def lmeBehavior(dm):
 		plt.plot(lSoa, lInv, 'o-', color=invColor, label='Invalid (N=%d)' % \
 			nInv)
 		plt.legend(frameon=False)
-	plot.save('behavior', show=show)
+	Plot.save('behavior', show=show)
 
 @cachedArray
 def lmeTrace(dm, traceParams=trialParams, suffix=''):
@@ -512,7 +550,7 @@ def lmeTrace(dm, traceParams=trialParams, suffix=''):
 
 	_dm = dm.selectColumns(['cueLum', 'subject_nr', '__trace_trial__', \
 		'__trace_baseline__'])
-	a = tk.mixedModelTrace(_dm, traceModel, winSize= winSize, **traceParams)
+	a = tk.mixedModelTrace(_dm, traceModel, winSize=winSize, **traceParams)
 	return a
 
 def subjectPlot(dm):
@@ -524,7 +562,7 @@ def subjectPlot(dm):
 	dm		--	A DataMatrix.
 	"""
 
-	plot.new(size=plot.hi)
+	Plot.new(size=Plot.hi)
 	i = 1
 	for _dm in dm.group('subject_nr'):
 		subject_nr = _dm['subject_nr'][0]
@@ -534,7 +572,7 @@ def subjectPlot(dm):
 		trialPlot(_dm, show=False, err=False, suffix='.subject%.2d' % \
 			subject_nr)
 		i += 1
-	plot.save('subjectPlot', show=show)
+	Plot.save('subjectPlot', show=show)
 
 # Sanity checks
 if winSize != 1:
