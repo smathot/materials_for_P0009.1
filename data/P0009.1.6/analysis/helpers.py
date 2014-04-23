@@ -39,6 +39,14 @@ trialParams = {
 	'baselineLock'	: 'end',
 	'traceLen'		: 3000
 	}
+respLockParams = {
+	'signal'		: 'pupil',
+	'lock'			: 'start',
+	'phase'			: 'trial',
+	'baseline'		: 'baseline',
+	'baselineLock'	: 'end',
+	'traceLen'		: 1500
+	}
 
 # The window size for the lme. (production value: 1)
 winSize = 1
@@ -72,7 +80,9 @@ def __fullPathway__(dm):
 	lmeBehavior(dm)
 	trialPlot1000(dm)
 	trialPlot2500(dm)
+	corrPlot100_100(dm)
 	corrPlot100_2500(dm)
+	corrPlot1000_2500(dm)
 	corrPlot1000(dm)
 	corrPlot2500(dm)
 
@@ -125,16 +135,19 @@ def corrExample(dm, soaBehav, soaPupil, dv='correct'):
 	plt.xlabel('Pupil cuing effect (norm.)')
 	Plot.save('corrExample.%d.%d' % (soaBehav, soaPupil), show=show)
 
-def corrPlot(dm, soaBehav, soaPupil):
+def corrPlot(dm, soaBehav, soaPupil, suffix=''):
 
 	"""
 	Plots and analyzes the correlation between the cuing effect in behavior and
 	pupil size.
 
 	Arguments:
-	dm		--	A DataMatrix.
+	dm			--	A DataMatrix.
 	soaBehav	--	The SOA to analyze for the behavioral effect.
 	soaPupil	--	The SOA to analyze for the pupil effect.
+
+	Keyword arguments:
+	suffix		--	A suffix for the plot filename. (default='')
 	"""
 
 	Plot.new(size=Plot.ws)
@@ -152,16 +165,29 @@ def corrPlot(dm, soaBehav, soaPupil):
 	plt.xlim(0, 2550)
 	# Accuracy
 	a = corrTrace(dm, soaBehav, soaPupil, dv='correct', suffix='acc', \
-		cacheId='corrTrace.correct.%d.%d' % (soaBehav, soaPupil))
+		cacheId='corrTrace.correct.%d.%d%s' % (soaBehav, soaPupil, suffix))
 	tk.markStats(plt.gca(), a[:,1])
 	plt.plot(a[:,0], label='Accuracy', color=blue[1])
 	# RTs
 	a = corrTrace(dm, soaBehav, soaPupil, dv='response_time', suffix='rt', \
-		cacheId='corrTrace.rt.%d.%d' % (soaBehav, soaPupil))
+		cacheId='corrTrace.rt.%d.%d%s' % (soaBehav, soaPupil, suffix))
 	tk.markStats(plt.gca(), a[:,1])
 	plt.plot(a[:,0], label='Response times', color=orange[1])
 	plt.legend(frameon=False, loc='upper left')
-	Plot.save('corrAnalysis.%d.%d' % (soaBehav, soaPupil), show=show)
+	Plot.save('corrAnalysis.%d.%d%s' % (soaBehav, soaPupil, suffix), show=show)
+
+def corrPlot100_100(dm):
+
+	"""
+	A correlation plot between the behavioral response in the 100 ms SOA and
+	the pupil trace in 2500 ms SOA.
+
+	Arguments:
+	dm				--	A DataMatrix.
+	"""
+
+	corrPlot(dm, 45, 45)
+	corrExample(dm, 45, 45)
 
 def corrPlot100_2500(dm):
 
@@ -351,6 +377,10 @@ def descriptives(dm):
 	pm = PivotMatrix(dm, ['subject_nr'], ['subject_nr'], dv=lambda x: len(x))
 	pm._print('Cell count')
 	pm.save('output/cellcount.csv')
+	pm = PivotMatrix(dm, ['cueValidity', 'soa', 'cueLum'], ['subject_nr'], \
+		dv=lambda x: len(x))
+	pm._print('Cell count')
+	pm.save('output/cellcount.cueValidity.soa.cueLum.csv')
 	pm = PivotMatrix(dmc, ['cueValidity', 'soa'], ['subject_nr'], \
 		dv='response_time')
 	pm.save('output/rt.csv')
@@ -392,7 +422,8 @@ def filter(dm):
 	dm['irt'] = 1./dm['response_time']
 	return dm
 
-def tracePlot(dm, traceParams=trialParams, suffix='', err=True):
+def tracePlot(dm, traceParams=trialParams, suffix='', err=True, \
+	lumVar='cueLum'):
 
 	"""
 	A pupil-trace plot for a single epoch.
@@ -405,11 +436,17 @@ def tracePlot(dm, traceParams=trialParams, suffix='', err=True):
 	suffix			--	A suffix to identify the trace. (default='')
 	err				--	Indicates whether error bars should be drawn.
 						(default=True)
+	lumVar			--	The variable that contains the luminance information.
+						(default='cueLum')
 	"""
 
-	x1, y1, err1 = tk.getTraceAvg(dm.select('cueLum == "bright"'), \
+	# At the moment we can only determine error bars for cueLum
+	assert(not err or lumVar == 'cueLum')
+	assert(lumVar in ['cueLum', 'targetLum'])
+	x1, y1, err1 = tk.getTraceAvg(dm.select('%s == "bright"' % lumVar), \
 		**traceParams)
-	x2, y2, err2 = tk.getTraceAvg(dm.select('cueLum == "dark"'), **traceParams)
+	x2, y2, err2 = tk.getTraceAvg(dm.select('%s == "dark"' % lumVar), \
+		**traceParams)
 	if err:
 		d = y2-y1
 		aErr = lmeTrace(dm, traceParams=traceParams, suffix=suffix, \
@@ -426,8 +463,36 @@ def tracePlot(dm, traceParams=trialParams, suffix='', err=True):
 		plt.fill_between(x1, y1min, y1max, color=green[1], alpha=.25)
 		plt.fill_between(x2, y2min, y2max, color=blue[1], alpha=.25)
 		tk.markStats(plt.gca(), np.abs(aT), below=False, thr=2, minSmp=200)
-	plt.plot(x1, y1, color=green[1], label='Cue on bright')
-	plt.plot(x2, y2, color=blue[1], label='Cue on dark')
+	if lumVar == 'cueLum':
+		plt.plot(x1, y1, color=green[1], label='Cue on bright')
+		plt.plot(x2, y2, color=blue[1], label='Cue on dark')
+	elif lumVar == 'targetLum':
+		plt.plot(x1, y1, color=green[1], label='Target on bright')
+		plt.plot(x2, y2, color=blue[1], label='Target on dark')
+
+def traceDiffPlot(dm, traceParams=trialParams, suffix='', err=True, \
+	color=blue[1], label=None):
+
+	"""
+	A pupil-trace plot for a single epoch.
+
+	Arguments:
+	dm				--	A DataMatrix.
+
+	Keyword arguments:
+	traceParams		--	The trace parameters. (default=trialParams)
+	suffix			--	A suffix to identify the trace. (default='')
+	err				--	Indicates whether error bars should be drawn.
+						(default=True) Note: UNUSED
+	color			--	The line color. (default=blue[1])
+	label			--	The line label. (default=None)
+	"""
+
+	x1, y1, err1 = tk.getTraceAvg(dm.select('cueLum == "bright"'), \
+		**traceParams)
+	x2, y2, err2 = tk.getTraceAvg(dm.select('cueLum == "dark"'), **traceParams)
+	d = y2-y1
+	plt.plot(d, color=color, label=label)
 
 def trialPlot(dm, soa, _show=show, err=True, suffix=''):
 
@@ -439,7 +504,7 @@ def trialPlot(dm, soa, _show=show, err=True, suffix=''):
 	soa				--	The SOA to select.
 
 	Keyword arguments:
-	show			--	Indicates whether the plot should be shown.
+	_show			--	Indicates whether the plot should be shown.
 						(default=True)
 	err				--	Indicates whether error bars should be drawn.
 						(default=True)
@@ -456,8 +521,8 @@ def trialPlot(dm, soa, _show=show, err=True, suffix=''):
 	traceLen = soa + 105
 	traceParams = trialParams.copy()
 	traceParams['traceLen'] = traceLen
-	tracePlot(dm, traceParams=traceParams, err=err, \
-		suffix='.%d%s' % (soa, suffix))
+	tracePlot(dm, traceParams=traceParams, err=err, suffix='.%d%s' % (soa, \
+		suffix))
 	# Cue
 	plt.axvspan(0, cueDur, color=blue[1], alpha=.2)
 	# Target. Take into account to cue duration in determining the target onset.
@@ -472,6 +537,17 @@ def trialPlot(dm, soa, _show=show, err=True, suffix=''):
 	plt.xticks(range(0, 2501, 500))
 	if _show:
 		Plot.save('trialPlot.%d' % soa, show=show)
+
+def trialPlot100(dm):
+
+	"""
+	A pupil-trace plot for the full trial epoch in 100 ms SOA condition.
+
+	Arguments:
+	dm				--	A DataMatrix.
+	"""
+
+	trialPlot(dm, soa=45)
 
 def trialPlot1000(dm):
 
@@ -592,6 +668,95 @@ def lmeTrace(dm, traceParams=trialParams, suffix=''):
 	a = tk.mixedModelTrace(_dm, traceModel, winSize=winSize, **traceParams)
 	return a
 
+def respLockPlot(dm, soa, _show=True, err=True, suffix=''):
+
+	"""
+	Generates a response-locked pupil-trace plot.
+
+	Arguments:
+	dm		--	A DataMatrix.
+	soa		--	The SOA to analyze.
+
+	Keyword arguments:
+	_show			--	Indicates whether the plot should be shown.
+						(default=True)
+	err				--	Indicates whether error bars should be drawn.
+						(default=True)
+	suffix			--	A suffix to identify the trace. (default='')
+	"""
+
+	assert(soa in dm.unique('soa'))
+	if _show:
+		Plot.new(size=Plot.ws)
+		plt.title('SOA: %d ms%s' % (soa+55, suffix))
+	dm = dm.select('soa == %d' % soa)
+	# Recoding target luminance
+	print 'Recoding target luminance ...'
+	dm = dm.addField('targetLum', dtype=str)
+	for i in dm.range():
+		if (dm['cueLum'][i] == 'bright' and dm['cueValidity'][i] == 'valid') \
+			or (dm['cueLum'][i] == 'dark' and dm['cueValidity'][i] == \
+			'invalid'):
+			dm['targetLum'][i] = 'bright'
+		else:
+			dm['targetLum'][i] = 'dark'
+	print 'Done'
+	# Draw lines
+	plt.axhline(1, linestyle='--', color='black')
+	plt.axvline(dm['response_time'].mean(), linestyle='--', color='black')
+	# Determine the trace length and create the trace plot
+	traceParams = respLockParams.copy()
+	traceParams['offset'] = soa+55
+	tracePlot(dm, traceParams=traceParams, err=False, suffix='.respLock.%d%s' \
+		% (soa, suffix), lumVar='targetLum')
+	# Target
+	plt.axvspan(0, targetDur, color=blue[1], alpha=.2)
+	plt.xlim(0, traceParams['traceLen'])
+	plt.legend(frameon=False)
+	plt.xlabel('Time since target onset (ms)')
+	plt.ylabel('Pupil size (norm.)')
+	plt.ylim(.95, 1.4)
+	plt.yticks([1, 1.1, 1.2, 1.3])
+	plt.xticks(range(0, 1501, 250))
+	if _show:
+		Plot.save('respLockPlot.%d%s' % (soa, suffix), show=show)
+
+def respLockPlot100(dm):
+
+	"""
+	Generates a response-locked pupil-trace plot for 100 ms SOA.
+
+	Arguments:
+	dm		--	A DataMatrix.
+	"""
+
+	respLockPlot(dm.select('correct == 1'), soa=45, suffix='.correct')
+	respLockPlot(dm.select('correct == 0'), soa=45, suffix='.incorrect')
+
+def respLockPlot1000(dm):
+
+	"""
+	Generates a response-locked pupil-trace plot for 1000 ms SOA.
+
+	Arguments:
+	dm		--	A DataMatrix.
+	"""
+
+	respLockPlot(dm.select('correct == 1'), soa=945, suffix='.correct')
+	respLockPlot(dm.select('correct == 0'), soa=945, suffix='.incorrect')
+
+def respLockPlot2500(dm):
+
+	"""
+	Generates a response-locked pupil-trace plot for 2500 ms SOA.
+
+	Arguments:
+	dm		--	A DataMatrix.
+	"""
+
+	respLockPlot(dm.select('correct == 1'), soa=2445, suffix='.correct')
+	respLockPlot(dm.select('correct == 0'), soa=2445, suffix='.incorrect')
+
 def subjectPlot(dm):
 
 	"""
@@ -608,7 +773,7 @@ def subjectPlot(dm):
 		N = len(_dm)
 		plt.subplot(np.ceil(dm.count('subject_nr')/2.), 2, i)
 		plt.title('%s (%d)' % (subject_nr, N))
-		trialPlot(_dm, show=False, err=False, suffix='.subject%.2d' % \
+		trialPlot(_dm, 2445, _show=False, err=False, suffix='.subject%.2d' % \
 			subject_nr)
 		i += 1
 	Plot.save('subjectPlot', show=show)
