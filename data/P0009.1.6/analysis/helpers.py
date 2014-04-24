@@ -532,7 +532,8 @@ def trialPlot(dm, soa, _show=show, err=True, suffix=''):
 	plt.legend(frameon=False)
 	plt.xlabel('Time since cue onset (ms)')
 	plt.ylabel('Pupil size (norm.)')
-	plt.ylim(.98, 1.07)
+	if _show:
+		plt.ylim(.98, 1.07)
 	plt.yticks([1,1.025, 1.05])
 	plt.xticks(range(0, 2501, 500))
 	if _show:
@@ -580,7 +581,11 @@ def lmeBehavior(dm):
 	dm		--	A DataMatrix.
 	"""
 
-	R = RBridge()
+	global R
+	try:
+		R
+	except:
+		R = RBridge()
 	i = 1
 	Plot.new(size=Plot.ws)
 	for dv in ['correct', 'irt']:
@@ -766,17 +771,34 @@ def subjectPlot(dm):
 	dm		--	A DataMatrix.
 	"""
 
-	Plot.new(size=Plot.hi)
+	Plot.new(size=Plot.xl)
 	i = 1
 	for _dm in dm.group('subject_nr'):
 		subject_nr = _dm['subject_nr'][0]
 		N = len(_dm)
-		plt.subplot(np.ceil(dm.count('subject_nr')/2.), 2, i)
+		plt.subplot(np.ceil(dm.count('subject_nr')/4.), 5, i)
 		plt.title('%s (%d)' % (subject_nr, N))
 		trialPlot(_dm, 2445, _show=False, err=False, suffix='.subject%.2d' % \
 			subject_nr)
 		i += 1
 	Plot.save('subjectPlot', show=show)
+
+def subjectDiffPlot(dm):
+
+	"""
+	Creates a line plot of the pupil effect separately for each subject.
+
+	Arguments:
+	dm		--	A DataMatrix.
+	"""
+
+	Plot.new(size=Plot.w)
+	colors = brightColors * 10
+	for _dm in dm.group('subject_nr'):
+		print 'Subject %d' % _dm['subject_nr'][0]
+		traceDiffPlot(_dm, color=colors.pop())
+	plt.axhline(0, linestyle='--', color='black')
+	Plot.save('subjectDiffPlot', show=show)
 
 # Sanity checks
 if winSize != 1:
