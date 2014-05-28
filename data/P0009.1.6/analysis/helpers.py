@@ -778,7 +778,70 @@ def respLockPlot2500(dm):
 	respLockPlot(dm.select('correct == 1'), soa=2445, suffix='.correct')
 	respLockPlot(dm.select('correct == 0'), soa=2445, suffix='.incorrect')
 	
-def splitHalfReliability(dm, soa=2445, sample=1852, n=10000):
+def splitHalfReliabilityCorrect(dm, soa=2445, n=10000):
+	
+	"""
+	Tests the split-half reliability of the behavioral cuing effect at the peak
+	sample. Wrapper for accuracy analysis.
+	
+	Arguments:
+	dm		--	A DataMatrix.
+	
+	Keyword arguments:
+	soa		--	The SOA. (default=2445)
+	dv		--	The dependent variable to use. (default='correct')
+	n		--	The number of runs. (default=1000)
+	"""
+	
+	splitHalfReliabilityBehav(dm, soa=soa, dv='correct', n=n)
+	
+def splitHalfReliabilityBehav(dm, soa=2445, dv='response_time', n=10000):
+	
+	"""
+	Tests the split-half reliability of the behavioral cuing effect at the peak
+	sample.
+	
+	Arguments:
+	dm		--	A DataMatrix.
+	
+	Keyword arguments:
+	soa		--	The SOA. (default=2445)
+	dv		--	The dependent variable to use. (default='correct')
+	n		--	The number of runs. (default=1000)
+	"""
+	
+	@cachedArray
+	def corrArray(dm, soa, dv, n):
+		import time
+		lR = []
+		t0 = time.time()
+		for i in range(n):
+			l1 = []
+			l2 = []
+			for _dm in dm.group('subject_nr'):
+				_dm.shuffle()
+				dm1 = _dm[:len(_dm)/2]
+				dm2 = _dm[len(_dm)/2:]
+				ce1 = cuingEffectBehav(dm1, dv=dv)
+				ce2 = cuingEffectBehav(dm2, dv=dv)
+				l1.append(ce1)
+				l2.append(ce2)
+			s, j, r, p, se = linregress(l1, l2)
+			print '%d (%d s): r = %.4f, p = %.4f' % (i, time.time()-t0, r, p)
+			lR.append(r)
+		return np.array(lR)	
+	
+	assert(soa in dm.unique('soa'))
+	dm = dm.select('soa == %d' % soa)
+	Plot.new(size=(3,3))
+	plt.hist(corrArray(dm, soa, dv, n, cacheId='corrArrayBehav.%s' % dv),
+		bins=n/10, color=blue[1])
+	plt.xlabel('Split-half correlation (r)')
+	plt.ylabel('Frequency (N)')
+	Plot.save('splitHalfReliabilityBehav.hist', folder='corrAnalysis',
+		show=True)
+	
+def splitHalfReliabilityPupil(dm, soa=2445, sample=1852, n=10000):
 	
 	"""
 	Tests the split-half reliability of the pupillary inhibition at the peak
@@ -809,7 +872,7 @@ def splitHalfReliability(dm, soa=2445, sample=1852, n=10000):
 				ce2 = cuingEffectPupil(dm2, epoch=(sample, sample+winSize))
 				l1.append(ce1)
 				l2.append(ce2)
-			s, i, r, p, se = linregress(l1, l2)
+			s, j, r, p, se = linregress(l1, l2)
 			print '%d (%d s): r = %.4f, p = %.4f' % (i, time.time()-t0, r, p)
 			lR.append(r)
 		return np.array(lR)	
@@ -817,7 +880,8 @@ def splitHalfReliability(dm, soa=2445, sample=1852, n=10000):
 	assert(soa in dm.unique('soa'))
 	dm = dm.select('soa == %d' % soa)
 	Plot.new(size=(3,3))
-	plt.hist(corrArray(dm, soa, sample, n, cacheId='corrArray'), bins=n/10, color=blue[1])
+	plt.hist(corrArray(dm, soa, sample, n, cacheId='corrArrayPupil'), bins=n/10,
+		color=blue[1])
 	plt.xlabel('Split-half correlation (r)')
 	plt.ylabel('Frequency (N)')
 	Plot.save('splitHalfReliability.hist', folder='corrAnalysis', show=True)
