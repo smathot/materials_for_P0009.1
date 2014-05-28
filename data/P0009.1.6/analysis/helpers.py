@@ -81,6 +81,7 @@ def __fullPathway__(dm):
 	trialPlot1000(dm)
 	trialPlot2500(dm)
 	corrPlot100_100(dm)
+	corrPlot100_1000(dm)
 	corrPlot100_2500(dm)
 	corrPlot1000_2500(dm)
 	corrPlot1000(dm)
@@ -122,7 +123,7 @@ def corrExample(dm, soaBehav, soaPupil, dv='correct'):
 		yData.append(100.*ceb)
 		xData.append(cep)
 
-	Plot.new(size=Plot.xs)
+	Plot.new(size=(3,3))
 	plt.title('SOA: %d ms (behavior), %d ms (pupil)' % (soaBehav+55, \
 		soaPupil+55))
 	Plot.regress(xData, yData)
@@ -133,7 +134,8 @@ def corrExample(dm, soaBehav, soaPupil, dv='correct'):
 	plt.plot(xData, yData, 'o', color='black')
 	plt.ylabel('Behav. cuing effect (%)')
 	plt.xlabel('Pupil cuing effect (norm.)')
-	Plot.save('corrExample.%d.%d' % (soaBehav, soaPupil), show=show)
+	Plot.save('corrExample.%d.%d' % (soaBehav, soaPupil), 'corrAnalysis',
+		show=show)
 
 def corrPlot(dm, soaBehav, soaPupil, suffix=''):
 
@@ -174,7 +176,8 @@ def corrPlot(dm, soaBehav, soaPupil, suffix=''):
 	tk.markStats(plt.gca(), a[:,1])
 	plt.plot(a[:,0], label='Response times', color=orange[1])
 	plt.legend(frameon=False, loc='upper left')
-	Plot.save('corrAnalysis.%d.%d%s' % (soaBehav, soaPupil, suffix), show=show)
+	Plot.save('corrAnalysis.%d.%d%s' % (soaBehav, soaPupil, suffix),
+		'corrAnalysis', show=show)
 
 def corrPlot100_100(dm):
 
@@ -188,6 +191,19 @@ def corrPlot100_100(dm):
 
 	corrPlot(dm, 45, 45)
 	corrExample(dm, 45, 45)
+
+def corrPlot100_1000(dm):
+
+	"""
+	A correlation plot between the behavioral response in the 100 ms SOA and
+	the pupil trace in 1000 ms SOA.
+
+	Arguments:
+	dm				--	A DataMatrix.
+	"""
+
+	corrPlot(dm, 45, 945)
+	corrExample(dm, 45, 945)
 
 def corrPlot100_2500(dm):
 
@@ -537,7 +553,7 @@ def trialPlot(dm, soa, _show=show, err=True, suffix=''):
 	plt.yticks([1,1.025, 1.05])
 	plt.xticks(range(0, 2501, 500))
 	if _show:
-		Plot.save('trialPlot.%d' % soa, show=show)
+		Plot.save('trialPlot.%d' % soa, 'trialPlot', show=show)
 
 def trialPlot100(dm):
 
@@ -647,7 +663,7 @@ def lmeBehavior(dm):
 		plt.plot(lSoa, lInv, 'o-', color=invColor, label='Invalid (N=%d)' % \
 			nInv)
 		plt.legend(frameon=False)
-	Plot.save('behavior', show=show)
+	Plot.save('behavior', 'behavior', show=show)
 
 @cachedArray
 def lmeTrace(dm, traceParams=trialParams, suffix=''):
@@ -724,7 +740,7 @@ def respLockPlot(dm, soa, _show=True, err=True, suffix=''):
 	plt.yticks([1, 1.1, 1.2, 1.3])
 	plt.xticks(range(0, 1501, 250))
 	if _show:
-		Plot.save('respLockPlot.%d%s' % (soa, suffix), show=show)
+		Plot.save('respLockPlot.%d%s' % (soa, suffix), 'respLock', show=show)
 
 def respLockPlot100(dm):
 
@@ -761,6 +777,50 @@ def respLockPlot2500(dm):
 
 	respLockPlot(dm.select('correct == 1'), soa=2445, suffix='.correct')
 	respLockPlot(dm.select('correct == 0'), soa=2445, suffix='.incorrect')
+	
+def splitHalfReliability(dm, soa=2445, sample=1852, n=10000):
+	
+	"""
+	Tests the split-half reliability of the pupillary inhibition at the peak
+	sample.
+	
+	Arguments:
+	dm		--	A DataMatrix.
+	
+	Keyword arguments:
+	soa		--	The SOA. (default=2445)
+	sample	--	The pupil-trace sample. (default=1852)
+	n		--	The number of runs. (default=1000)
+	"""
+	
+	@cachedArray
+	def corrArray(dm, soa, sample, n):
+		import time
+		lR = []
+		t0 = time.time()
+		for i in range(n):
+			l1 = []
+			l2 = []
+			for _dm in dm.group('subject_nr'):
+				_dm.shuffle()
+				dm1 = _dm[:len(_dm)/2]
+				dm2 = _dm[len(_dm)/2:]
+				ce1 = cuingEffectPupil(dm1, epoch=(sample, sample+winSize))
+				ce2 = cuingEffectPupil(dm2, epoch=(sample, sample+winSize))
+				l1.append(ce1)
+				l2.append(ce2)
+			s, i, r, p, se = linregress(l1, l2)
+			print '%d (%d s): r = %.4f, p = %.4f' % (i, time.time()-t0, r, p)
+			lR.append(r)
+		return np.array(lR)	
+	
+	assert(soa in dm.unique('soa'))
+	dm = dm.select('soa == %d' % soa)
+	Plot.new(size=(3,3))
+	plt.hist(corrArray(dm, soa, sample, n, cacheId='corrArray'), bins=n/10, color=blue[1])
+	plt.xlabel('Split-half correlation (r)')
+	plt.ylabel('Frequency (N)')
+	Plot.save('splitHalfReliability.hist', folder='corrAnalysis', show=True)
 
 def subjectPlot(dm):
 
@@ -781,7 +841,7 @@ def subjectPlot(dm):
 		trialPlot(_dm, 2445, _show=False, err=False, suffix='.subject%.2d' % \
 			subject_nr)
 		i += 1
-	Plot.save('subjectPlot', show=show)
+	Plot.save('subjectPlot', 'subject', show=show)
 
 def subjectDiffPlot(dm):
 
@@ -798,7 +858,7 @@ def subjectDiffPlot(dm):
 		print 'Subject %d' % _dm['subject_nr'][0]
 		traceDiffPlot(_dm, color=colors.pop())
 	plt.axhline(0, linestyle='--', color='black')
-	Plot.save('subjectDiffPlot', show=show)
+	Plot.save('subjectDiffPlot', 'subject', show=show)
 
 # Sanity checks
 if winSize != 1:
