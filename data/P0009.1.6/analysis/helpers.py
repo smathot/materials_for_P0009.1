@@ -834,12 +834,15 @@ def splitHalfReliabilityBehav(dm, soa=2445, dv='response_time', n=10000):
 	assert(soa in dm.unique('soa'))
 	dm = dm.select('soa == %d' % soa)
 	Plot.new(size=(3,3))
-	plt.hist(corrArray(dm, soa, dv, n, cacheId='corrArrayBehav.%s' % dv),
-		bins=n/10, color=blue[1])
+	a = corrArray(dm, soa, dv, n, cacheId='corrArrayBehav.%s' % dv)
+	s = 'M = %.2f, P(r > 0) = %.2f' % (a.mean(), np.mean(a > 0))
+	plt.hist(a, bins=n/10, color=blue[1])
+	plt.title(s)
+	plt.axvline(0, color='black')	
+	plt.xlim(-1, 1)
 	plt.xlabel('Split-half correlation (r)')
 	plt.ylabel('Frequency (N)')
-	Plot.save('splitHalfReliabilityBehav.hist', folder='corrAnalysis',
-		show=True)
+	Plot.save('splitHalfReliability.behav.%s' % dv, folder='corrAnalysis')
 	
 def splitHalfReliabilityPupil(dm, soa=2445, sample=1852, n=10000):
 	
@@ -880,11 +883,15 @@ def splitHalfReliabilityPupil(dm, soa=2445, sample=1852, n=10000):
 	assert(soa in dm.unique('soa'))
 	dm = dm.select('soa == %d' % soa)
 	Plot.new(size=(3,3))
-	plt.hist(corrArray(dm, soa, sample, n, cacheId='corrArrayPupil'), bins=n/10,
-		color=blue[1])
+	a = corrArray(dm, soa, sample, n, cacheId='corrArrayPupil')
+	s = 'M = %.2f, P(r > 0) = %.2f' % (a.mean(), np.mean(a > 0))
+	plt.hist(a, bins=n/10, color=blue[1])
+	plt.title(s)
+	plt.axvline(0, color='black')
+	plt.xlim(-1, 1)
 	plt.xlabel('Split-half correlation (r)')
 	plt.ylabel('Frequency (N)')
-	Plot.save('splitHalfReliability.hist', folder='corrAnalysis', show=True)
+	Plot.save('splitHalfReliability.pupil', folder='corrAnalysis')
 
 def subjectPlot(dm):
 
