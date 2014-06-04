@@ -25,7 +25,7 @@
         <dc:format>image/svg+xml</dc:format>
         <dc:type
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
-        <dc:title></dc:title>
+        <dc:title />
       </cc:Work>
     </rdf:RDF>
   </metadata>
@@ -38,17 +38,17 @@
      guidetolerance="10"
      inkscape:pageopacity="0"
      inkscape:pageshadow="2"
-     inkscape:window-width="1680"
-     inkscape:window-height="986"
+     inkscape:window-width="1920"
+     inkscape:window-height="1016"
      id="namedview647"
      showgrid="false"
-     inkscape:zoom="1.0449467"
-     inkscape:cx="333.11222"
-     inkscape:cy="144.31916"
-     inkscape:window-x="-2"
-     inkscape:window-y="547"
+     inkscape:zoom="2.9555556"
+     inkscape:cx="546.68917"
+     inkscape:cy="138.34067"
+     inkscape:window-x="1364"
+     inkscape:window-y="-3"
      inkscape:window-maximized="1"
-     inkscape:current-layer="axes_1"
+     inkscape:current-layer="axes_1-4"
      inkscape:snap-bbox="true"
      fit-margin-top="0"
      fit-margin-left="0"
@@ -1886,19 +1886,12 @@
              id="axes_1-4"
              style="stroke-linecap:butt;stroke-linejoin:round">
             <rect
-               style="opacity:0.25;fill:#8ae234;fill-opacity:1;stroke:none"
+               style="opacity:0.25000000000000000;fill:#ef2929;fill-opacity:1;stroke:none"
                id="rect9163"
                width="92.508568"
                height="107.98499"
                x="32.402454"
                y="75.567154" />
-            <rect
-               style="opacity:0.25;fill:#ef2929;fill-opacity:1;stroke:none"
-               id="rect9163-1-0"
-               width="92.398148"
-               height="53.894676"
-               x="32.486813"
-               y="21.688349" />
             <g
                id="line2d_1-7"
                style="stroke-linecap:butt;stroke-linejoin:round">
@@ -2052,13 +2045,6 @@
                    height="1" />
               </g>
             </g>
-            <rect
-               style="opacity:0.25;fill:#ef2929;fill-opacity:1;stroke:none"
-               id="rect9163-1"
-               width="69.245384"
-               height="108.03283"
-               x="124.93281"
-               y="75.529289" />
             <rect
                style="opacity:0.25;fill:#8ae234;fill-opacity:1;stroke:none"
                id="rect9163-8"
