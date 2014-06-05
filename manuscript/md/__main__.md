@@ -51,7 +51,7 @@ Keywords: pupillometry, visual attention, inhibition of return, eye movements
 
 All authors contributed to the study design and contributed to writing of the manuscript. S. Mathôt developed the experiment and analyzed the data.
 
-# Ackowledgements
+# Acknowledgements
 
 SM and JG FV were supported by ERC grant 230313 (<http://erc.europa.eu/>). The funders had no role in study design, data collection and analysis, decision to publish, or preparation of the manuscript. The authors declare no competing financial interests. We thank Virgile Luong for his help in collecting the data.
 
