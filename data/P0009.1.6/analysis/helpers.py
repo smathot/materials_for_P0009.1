@@ -439,7 +439,7 @@ def filter(dm):
 	return dm
 
 def tracePlot(dm, traceParams=trialParams, suffix='', err=True, \
-	lumVar='cueLum'):
+	lumVar='cueLum', minSmp=200):
 
 	"""
 	A pupil-trace plot for a single epoch.
@@ -478,7 +478,7 @@ def tracePlot(dm, traceParams=trialParams, suffix='', err=True, \
 		y2max = y2 + maxErr
 		plt.fill_between(x1, y1min, y1max, color=green[1], alpha=.25)
 		plt.fill_between(x2, y2min, y2max, color=blue[1], alpha=.25)
-		tk.markStats(plt.gca(), np.abs(aT), below=False, thr=2, minSmp=200)
+		tk.markStats(plt.gca(), np.abs(aT), below=False, thr=2, minSmp=minSmp)
 	if lumVar == 'cueLum':
 		plt.plot(x1, y1, color=green[1], label='Cue on bright')
 		plt.plot(x2, y2, color=blue[1], label='Cue on dark')
@@ -510,7 +510,7 @@ def traceDiffPlot(dm, traceParams=trialParams, suffix='', err=True, \
 	d = y2-y1
 	plt.plot(d, color=color, label=label)
 
-def trialPlot(dm, soa, _show=show, err=True, suffix=''):
+def trialPlot(dm, soa, _show=show, err=True, minSmp=200, suffix=''):
 
 	"""
 	A pupil-trace plot for the full trial epoch.
@@ -538,7 +538,7 @@ def trialPlot(dm, soa, _show=show, err=True, suffix=''):
 	traceParams = trialParams.copy()
 	traceParams['traceLen'] = traceLen
 	tracePlot(dm, traceParams=traceParams, err=err, suffix='.%d%s' % (soa, \
-		suffix))
+		suffix), minSmp=minSmp)
 	# Cue
 	plt.axvspan(0, cueDur, color=blue[1], alpha=.2)
 	# Target. Take into account to cue duration in determining the target onset.
@@ -602,14 +602,20 @@ def lmeBehavior(dm):
 		R
 	except:
 		R = RBridge()
+
 	i = 1
 	Plot.new(size=Plot.ws)
 	for dv in ['correct', 'irt']:
-		plt.subplot(1,2,i)
-		R.load(dm)
+		# Also analyze the grouped 945 and 2445 SOAs, which gives more power
+		# than analyzing them separately.
+		R.load(dm.select('soa != 45'))
 		lm = R.lmer('%s ~ cueValidity * soa + (1|subject_nr)' % dv)
-		lm.save('output/lmeBehavior.%s.csv' % dv)
-		lm._print(title=dv, sign=10)
+		lm.save('output/lmeBehavior.longInteract.%s.csv' % dv)
+		lm._print(title='Long: %s' % dv, sign=10)
+		lm = R.lmer('%s ~ cueValidity + (1|subject_nr)' % dv)
+		lm.save('output/lmeBehavior.longNoInteract.%s.csv' % dv)
+		lm._print(title='Long: %s' % dv, sign=10)
+		# Loop over SOAs
 		lSoa = []
 		lVal = []
 		lInv = []
@@ -617,8 +623,8 @@ def lmeBehavior(dm):
 			_dm = dm.select('soa == %d' % soa, verbose=False)
 			R.load(_dm)
 			lm = R.lmer('%s ~ cueValidity + (1|subject_nr)' % dv)
-			lm.save('output/lmeBehavior.%s.%d.csv' % (dv, soa))
-			lm._print(title='%s (%d)' % (dv, soa), sign=10)
+			lm.save('output/lmeBehavior.%s.%s.csv' % (dv, soa))
+			lm._print(title='%s (%s)' % (dv, soa), sign=10)
 			mInv = lm['est'][0] # Invalid is reference
 			mVal = mInv + lm['est'][1] #4Add slope for validity effect
 			d = lm['est'][1]
@@ -777,39 +783,39 @@ def respLockPlot2500(dm):
 
 	respLockPlot(dm.select('correct == 1'), soa=2445, suffix='.correct')
 	respLockPlot(dm.select('correct == 0'), soa=2445, suffix='.incorrect')
-	
+
 def splitHalfReliabilityCorrect(dm, soa=2445, n=10000):
-	
+
 	"""
 	Tests the split-half reliability of the behavioral cuing effect at the peak
 	sample. Wrapper for accuracy analysis.
-	
+
 	Arguments:
 	dm		--	A DataMatrix.
-	
+
 	Keyword arguments:
 	soa		--	The SOA. (default=2445)
 	dv		--	The dependent variable to use. (default='correct')
 	n		--	The number of runs. (default=1000)
 	"""
-	
+
 	splitHalfReliabilityBehav(dm, soa=soa, dv='correct', n=n)
-	
+
 def splitHalfReliabilityBehav(dm, soa=2445, dv='response_time', n=10000):
-	
+
 	"""
 	Tests the split-half reliability of the behavioral cuing effect at the peak
 	sample.
-	
+
 	Arguments:
 	dm		--	A DataMatrix.
-	
+
 	Keyword arguments:
 	soa		--	The SOA. (default=2445)
 	dv		--	The dependent variable to use. (default='correct')
 	n		--	The number of runs. (default=1000)
 	"""
-	
+
 	@cachedArray
 	def corrArray(dm, soa, dv, n):
 		import time
@@ -829,36 +835,42 @@ def splitHalfReliabilityBehav(dm, soa=2445, dv='response_time', n=10000):
 			s, j, r, p, se = linregress(l1, l2)
 			print '%d (%d s): r = %.4f, p = %.4f' % (i, time.time()-t0, r, p)
 			lR.append(r)
-		return np.array(lR)	
-	
+		return np.array(lR)
+
 	assert(soa in dm.unique('soa'))
 	dm = dm.select('soa == %d' % soa)
 	Plot.new(size=(3,3))
 	a = corrArray(dm, soa, dv, n, cacheId='corrArrayBehav.%s' % dv)
-	s = 'M = %.2f, P(r > 0) = %.2f' % (a.mean(), np.mean(a > 0))
+	a.sort()
+	ci95up = a[np.ceil(.975 * len(a))]
+	ci95lo = a[np.floor(.025 * len(a))]
+	s = 'M = %.2f, P(r > 0) = %.2f, 95%%: %.2f - %.2f' % (a.mean(),
+		np.mean(a > 0), ci95lo, ci95up)
+	print s
 	plt.hist(a, bins=n/10, color=blue[1])
 	plt.title(s)
-	plt.axvline(0, color='black')	
+	plt.axvline(0, color='black')
 	plt.xlim(-1, 1)
 	plt.xlabel('Split-half correlation (r)')
 	plt.ylabel('Frequency (N)')
-	Plot.save('splitHalfReliability.behav.%s' % dv, folder='corrAnalysis')
-	
+	Plot.save('splitHalfReliability.behav.%s' % dv, folder='corrAnalysis',
+		show=show)
+
 def splitHalfReliabilityPupil(dm, soa=2445, sample=1852, n=10000):
-	
+
 	"""
 	Tests the split-half reliability of the pupillary inhibition at the peak
 	sample.
-	
+
 	Arguments:
 	dm		--	A DataMatrix.
-	
+
 	Keyword arguments:
 	soa		--	The SOA. (default=2445)
 	sample	--	The pupil-trace sample. (default=1852)
 	n		--	The number of runs. (default=1000)
 	"""
-	
+
 	@cachedArray
 	def corrArray(dm, soa, sample, n):
 		import time
@@ -878,13 +890,18 @@ def splitHalfReliabilityPupil(dm, soa=2445, sample=1852, n=10000):
 			s, j, r, p, se = linregress(l1, l2)
 			print '%d (%d s): r = %.4f, p = %.4f' % (i, time.time()-t0, r, p)
 			lR.append(r)
-		return np.array(lR)	
-	
+		return np.array(lR)
+
 	assert(soa in dm.unique('soa'))
 	dm = dm.select('soa == %d' % soa)
 	Plot.new(size=(3,3))
 	a = corrArray(dm, soa, sample, n, cacheId='corrArrayPupil')
-	s = 'M = %.2f, P(r > 0) = %.2f' % (a.mean(), np.mean(a > 0))
+	a.sort()
+	ci95up = a[np.ceil(.975 * len(a))]
+	ci95lo = a[np.floor(.025 * len(a))]
+	s = 'M = %.2f, P(r > 0) = %.2f, 95%%: %.2f - %.2f' % (a.mean(),
+		np.mean(a > 0), ci95lo, ci95up)
+	print s
 	plt.hist(a, bins=n/10, color=blue[1])
 	plt.title(s)
 	plt.axvline(0, color='black')
