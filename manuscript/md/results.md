@@ -1,6 +1,6 @@
 ## Significance and trial-exclusion criteria
 
-For the individual-differences and correlation analyses, we used a significance threshold of p < .05. For the linear mixed-effects (LME) analyses we used t > 2. (This is comparable to a p < .05 threshold, @BaayenDavidsonBates2008. However, in light of recent concerns about p-value estimation for LME models, we have omitted explicit p-values.) An additional criterion for the pupil-trace analysis was that we required at least 200 consecutive samples where t > 2 [cf. @Mathôt2013Plos]. Trials were excluded when, at any point after cue onset and before feedback, participants fixated more than 2.9° from the left or right of the horizontal display center (4.9%). No other filtering criteria were applied. No participants were excluded. 8278 trials (95.1%) were entered into the analysis.
+For the individual-differences and correlation analyses, we used a significance threshold of p < .05. For the linear mixed-effects (LME) analyses we used t > 2. This is comparable to a p < .05 threshold, @BaayenDavidsonBates2008. However, in light of recent concerns about p-value estimation for LME models, we have omitted explicit p-values. For the pupil-trace analysis, we considered only sequences of at least 200 consecutive samples where t > 2 to be significant [cf. @Mathôt2013Plos]. Trials were excluded when, at any point after cue onset and before feedback, participants fixated more than 2.9° from the left or right of the horizontal display center (4.9%). No other filtering criteria were applied. No participants were excluded. 8278 trials (95.1%) were entered into the analysis.
 
 ## Behavioral results
 
@@ -28,7 +28,7 @@ figure:
 
 Pupil size depends on many factors other than luminance. In our data, the presentation of the cue triggered a fast, overall dilation, reflecting an orienting response [@WangBoehnke2012]. In addition, there was a slow dilation that persisted until the end of the trial and presumably reflected steadily increasing arousal. However, here we focus exclusively on the effect of luminance, i.e. the difference in pupil size between Cued-Side-Bright and Cued-Side-Dark trials.
 
-As shown in %FigPupilTrace, from 476 to 893 ms after cue onset, the pupil was smaller when the bright side, relative to the dark side of the display was cued (from now on: pupillary facilitation). This pattern reversed significantly from 1054 to 1316 ms after cue onset (from now on: pupillary inhibition), although the reversal qualitatively persisted until the end of the trial.
+As shown in %FigPupilTrace, from 476 to 893 ms after cue onset, the pupil was smaller when the bright side, relative to the dark side of the display was cued (from now on: pupillary facilitation). This effect peaked after 665 ms, and in absolute terms corresponded to a relative 2.8% pupil-area decrease [comparable to that observed for endogenous cuing, @Mathôt2013Plos]. This pattern reversed significantly from 1054 to 1316 ms after cue onset (from now on: pupillary inhibition), reaching a relative peak pupil-area increase of 1.0% after 1126 ms. The reversal qualitatively persisted until the end of the trial.
 
 ## Individual differences and correlation analyses
 

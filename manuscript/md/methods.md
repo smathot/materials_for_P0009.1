@@ -1,6 +1,6 @@
 ## Materials and availability
 
-Data, materials, and analysis scripts are available from <https://github.com/smathot/materials_for_P0009.1>. (Note to co-authors: Repository is currently private.)
+Data, materials, and analysis scripts are available from <https://github.com/smathot/materials_for_P0009.1>.
 
 ## Participants, software, and apparatus
 
