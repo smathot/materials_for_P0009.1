@@ -948,6 +948,39 @@ def subjectDiffPlot(dm):
 	plt.axhline(0, linestyle='--', color='black')
 	Plot.save('subjectDiffPlot', 'subject', show=show)
 
+def traceDiffPeaks(dm):
+
+	"""
+	desc: |
+		Determines the peaks where the effect is largest, and smallest, in real
+		units. This analysis is based on non-baselined pupil size.
+
+	arguments:
+		dm:		A DataMatrix.
+	"""
+
+	traceParams = trialParams.copy()
+	del traceParams['baseline']
+	x1, y1, err1 = tk.getTraceAvg(dm.select('cueLum == "bright"'), \
+		**traceParams)
+	x2, y2, err2 = tk.getTraceAvg(dm.select('cueLum == "dark"'), \
+		**traceParams)
+	xGrand, yGrand, errGrand = tk.getTraceAvg(dm, **traceParams)
+	d = 100. * (y2-y1) / yGrand
+	iMax = np.where(d == d.max())[0][0]
+	iMin = np.where(d == d.min())[0][0]
+	print 'Max effect: %.2f (sample %d)' % (d[iMax], iMax)
+	print 'Min effect: %.2f (sample %d)' % (d[iMin], iMin)
+	plt.subplot(211)
+	plt.plot(y1, color=green[1])
+	plt.plot(y2, color=blue[1])
+	plt.plot(yGrand, color=gray[1])
+	plt.subplot(212)
+	plt.plot(d, color='black')
+	plt.axvline(iMax, color='black')
+	plt.axvline(iMin, color='black')
+	Plot.save('traceDiffPeaks')
+
 # Sanity checks
 if winSize != 1:
 	warnings.warn('winSize should be 1 for production!')

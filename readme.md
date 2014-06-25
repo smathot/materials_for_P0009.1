@@ -1,14 +1,14 @@
 # Experimental resources for P0009.1
 
-Copyright 2014 Sebastiaan Mathôt  
-<s.mathot@cogsci.nl>  
+Copyright 2014 Sebastiaan Mathôt
+<s.mathot@cogsci.nl>
 <http://www.cogsci.nl/smathot>
 
 # About this repository
 
 This repository contains materials to accompany the following manuscript:
 
-Mathôt, S., et al. (in preparation). *The Pupillary Light Response Reflects Exogenous Attention and Inhibition of Return*.
+Mathôt, S., Dalmaijer, E. S., Grainger, J., & Van der Stigcel, S. (in preparation). *The Pupillary Light Response Reflects Exogenous Attention and Inhibition of Return*.
 
 # Folder structure
 

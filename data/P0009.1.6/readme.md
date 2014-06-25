@@ -4,8 +4,8 @@ This analysis recipe accompanies the following manuscript:
 
 Mathôt, S., et al. (in preparation). *The Pupillary Light Response Reflects Exogenous Attention and Inhibition of Return*.
 
-Copyright 2014 Sebastiaan Mathôt  
-<s.mathot@cogsci.nl>  
+Copyright 2014 Sebastiaan Mathôt
+<s.mathot@cogsci.nl>
 <http://www.cogsci.nl/smathot>
 
 ## License
@@ -23,7 +23,7 @@ This analysis recipe is provided so that the original analysis can be replicated
 - numpy
 - scipy
 - matplotlib
-- exparser
+- exparser (commit `#a7805ac`)
 - R
 
 ## Folder structure
@@ -47,34 +47,34 @@ The following folders are filled with intermediate files by the analysis scripts
 The EyeLink provides `.edf` files as output. These are not easily readable, but can be converted to a text-based `.asc` format, with the utility `edf2asc`.
 
 Command:
-	
+
 	edf2asc EDF/exp1/*.edf
-	
+
 Input:
-	
+
 - Raw EyeLink data in `.edf` format, stored in `EDF/*.edf`
 
 Output:
-	
+
 - Raw EyeLink data in `.asc` format, stored in `data/*.asc`
 
 ### Perform full analysis
 
 The actual analysis is performed by the script `analyze.py`, which takes various optional parameters. The commands below correspond to the analysis as reported in the manuscript. For further details, please refer to the source code of `analyze.py` and `helpers.py`. Note that this script assumes the existence of the folder `stats/exp1` to store intermediate data.
-	
+
 Command:
 
-	python analyze.py __fullPathway__
-	
+	python analyze.py @__fullPathway__
+
 
 Output:
-	
-- Various plots in `plots/` 
+
+- Various plots in `plots/`
 - Various output files in `output/`.
 - Information printed to the standard output.
 
 During the analysis, intermediate results are cached and saved in the hidden subfolder `.cache`. To run a clean analysis (i.e. without using the cache) either delete the `.cache` folder or run:
-	
+
 Command:
 
-	python analyze.py __fullPathway__ --no-cache
+	python analyze.py @__fullPathway__ --no-cache
