@@ -15,10 +15,10 @@ correspondence:
  - 13331 Marseille
  - France
 authornote: |
- - Manuscript type: Research report
- - Word count abstract:  %-- python: "from academicmarkdown import tools; print tools.wordCount(['md/abstract.md'])" --% (max. 150)
- - Word count introduction and discussion: %-- python: "from academicmarkdown import tools; print tools.wordCount(['md/introduction.md', 'md/discussion.md'])" --% (max. 1000)
- - References: %rc% (max. 20)
+ - Manuscript type: Article
+ - Word count abstract:  %-- python: "from academicmarkdown import tools; print tools.wordCount(['md/abstract.md'])" --% (max. 200)
+ - Word count main text: %-- python: "from academicmarkdown import tools; print tools.wordCount(['md/introduction.md', 'md/methods.md', 'md/results.md', 'md/discussion.md'])" --% (max. 1000)
+ - References: %rc%
 ---
 
 # Abstract

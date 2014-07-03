@@ -21,14 +21,15 @@ import sys
 from academicmarkdown import build, git, tools
 import myZoteroCredentials
 import time
-version = '1.1.3'
+version = '2.1.1'
 build.path += ['svg', 'md', 'tables']
 build.zoteroApiKey = myZoteroCredentials.zoteroApiKey
 build.zoteroLibraryId = myZoteroCredentials.zoteroLibraryId
 build.setStyle('apa')
+build.css = 'css/apa-150.css'
 build.pdfHeader = 'Manuscript in preparation [v%s; %s; %s]' % (version, \
 	time.strftime('%c'), git.commitHash())
 if '--snapshot' in sys.argv:
 	git.snapshot('md/__main__.md', msg=sys.argv[-1])
 else:
-	build.PDF('md/__main__.md', 'latest-manuscript.pdf')
+	build.PDF('md/__main__.md', 'latest-manuscript.pdf', lineNumbers=True)
