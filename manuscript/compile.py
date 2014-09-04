@@ -33,3 +33,9 @@ if '--snapshot' in sys.argv:
 	git.snapshot('md/__main__.md', msg=sys.argv[-1])
 else:
 	build.PDF('md/__main__.md', 'latest-manuscript.pdf', lineNumbers=True)
+	build.zoteroApiKey = None
+	build.setStyle('letter-classic')
+	build.pdfHeader = 'Coverletter [v%s; %s; %s]' % (version, \
+		time.strftime('%c'), git.commitHash())
+	build.PDF('md/coverletter.md', 'coverletter.pdf', lineNumbers=False)
+

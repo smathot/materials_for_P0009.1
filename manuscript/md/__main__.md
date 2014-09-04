@@ -17,7 +17,7 @@ correspondence:
 authornote: |
  - Manuscript type: Article
  - Word count abstract:  %-- python: "from academicmarkdown import tools; print tools.wordCount(['md/abstract.md'])" --% (max. 200)
- - Word count main text: %-- python: "from academicmarkdown import tools; print tools.wordCount(['md/introduction.md', 'md/methods.md', 'md/results.md', 'md/discussion.md'])" --% (max. 1000)
+ - Word count main text: %-- python: "from academicmarkdown import tools; print tools.wordCount(['md/introduction.md', 'md/methods.md', 'md/results.md', 'md/discussion.md'])" --%
  - References: %rc%
 ---
 
