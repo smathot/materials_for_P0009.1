@@ -30,8 +30,7 @@ build.css = 'css/apa-150.css'
 build.pdfHeader = 'Manuscript in preparation [v%s; %s; %s]' % (version, \
 	time.strftime('%c'), git.commitHash())
 if '--snapshot' in sys.argv:
-	git.snapshot('md/__main__.md', msg=sys.argv[-1],
-		pdfArgs={'lineNumbers' : True})
+	git.snapshot('md/__main__.md', msg=sys.argv[-1])
 else:
 	build.PDF('md/__main__.md', 'latest-manuscript.pdf', lineNumbers=True)
 	build.zoteroApiKey = None
