@@ -48,6 +48,9 @@ respLockParams = {
 	'traceLen'		: 1500
 	}
 
+# Determines whether the correlation traces should be trimmed by std
+stripCorr = False
+stripCorrThr = 2.
 # The window size for the lme. (production value: 1)
 winSize = 1
 # Stimulus durations.
@@ -64,6 +67,9 @@ invColor = red[1]
 traceModel = 'cueLum + (1|subject_nr)'
 # Indicates whether plots should be shown or only saved to disk
 show = True
+# Shows how high the difference curve should be plotted, so that it sits nicely
+# below the normal curves.
+diffY = .95
 
 def __fullPathway__(dm):
 
@@ -87,7 +93,38 @@ def __fullPathway__(dm):
 	corrPlot1000(dm)
 	corrPlot2500(dm)
 
-def corrExample(dm, soaBehav, soaPupil, dv='correct'):
+def dontShow(dm):
+
+	"""
+	desc:
+		disable the show parameter, so that plots aren't shown.
+
+	arguments:
+		dm:
+			desc:	A DataMatrix.
+			type:	DataMatrix
+	"""
+
+	global show
+	show = False
+
+def enableStripCorr(dm):
+
+	"""
+	desc:
+		Enable stripCorr option, which trims the correlation analysis by
+		standard deviation.
+
+	arguments:
+		dm:
+			desc:	A DataMatrix.
+			type:	DataMatrix
+	"""
+
+	global stripCorr
+	stripCorr = True
+
+def corrExample(dm, soaBehav, soaPupil, dv='correct', suffix=''):
 
 	"""
 	Plots an example of the correlation between behavior and pupil size at the
@@ -101,12 +138,15 @@ def corrExample(dm, soaBehav, soaPupil, dv='correct'):
 	Keyword arguments:
 	dv			--	The dependent variable to use for the behavioral effect.
 					(default='correct')
+	suffix		--	A filename suffix.
 	"""
 
 	assert(soaPupil in dm.unique('soa'))
 	assert(soaBehav in dm.unique('soa'))
+	if stripCorr:
+		suffix += '.stripCorr'
 	a = corrTrace(dm, soaBehav, soaPupil, dv='correct', suffix='acc', \
-		cacheId='corrTrace.correct.%d.%d' % (soaBehav, soaPupil))
+		cacheId='corrTrace.correct.%d.%d%s' % (soaBehav, soaPupil, suffix))
 	bestSample = np.argmax(a[:,0])
 	dmBehav = dm.select('soa == %d' % soaBehav)
 	dmPupil = dm.select('soa == %d' % soaPupil)
@@ -122,7 +162,8 @@ def corrExample(dm, soaBehav, soaPupil, dv='correct'):
 		print '%.2d\t %.4f\t%.4f' % (subject_nr, ceb, cep)
 		yData.append(100.*ceb)
 		xData.append(cep)
-
+	if stripCorr:
+		index, xData, yData = stripStd(np.array(xData), np.array(yData))
 	Plot.new(size=(3,3))
 	plt.title('SOA: %d ms (behavior), %d ms (pupil)' % (soaBehav+55, \
 		soaPupil+55))
@@ -134,8 +175,8 @@ def corrExample(dm, soaBehav, soaPupil, dv='correct'):
 	plt.plot(xData, yData, 'o', color='black')
 	plt.ylabel('Behav. cuing effect (%)')
 	plt.xlabel('Pupil cuing effect (norm.)')
-	Plot.save('corrExample.%d.%d' % (soaBehav, soaPupil), 'corrAnalysis',
-		show=show)
+	Plot.save('corrExample.%d.%d%s' % (soaBehav, soaPupil, suffix),
+		'corrAnalysis', show=show)
 
 def corrPlot(dm, soaBehav, soaPupil, suffix=''):
 
@@ -152,6 +193,8 @@ def corrPlot(dm, soaBehav, soaPupil, suffix=''):
 	suffix		--	A suffix for the plot filename. (default='')
 	"""
 
+	if stripCorr:
+		suffix += '.stripCorr'
 	Plot.new(size=Plot.ws)
 	plt.title('SOA: %d ms (behavior), %d ms (pupil)' % (soaBehav+55, \
 		soaPupil+55))
@@ -174,6 +217,7 @@ def corrPlot(dm, soaBehav, soaPupil, suffix=''):
 	a = corrTrace(dm, soaBehav, soaPupil, dv='response_time', suffix='rt', \
 		cacheId='corrTrace.rt.%d.%d%s' % (soaBehav, soaPupil, suffix))
 	tk.markStats(plt.gca(), a[:,1])
+	tk.markStats(plt.gca(), a[:,1], color='red')
 	plt.plot(a[:,0], label='Response times', color=orange[1])
 	plt.legend(frameon=False, loc='upper left')
 	Plot.save('corrAnalysis.%d.%d%s' % (soaBehav, soaPupil, suffix),
@@ -218,6 +262,19 @@ def corrPlot100_2500(dm):
 	corrPlot(dm, 45, 2445)
 	corrExample(dm, 45, 2445)
 
+def corrPlot1000_100(dm):
+
+	"""
+	A correlation plot between the behavioral response in the 100 ms SOA and
+	the pupil trace in 100 ms SOA.
+
+	Arguments:
+	dm				--	A DataMatrix.
+	"""
+
+	corrPlot(dm, 945, 45)
+	corrExample(dm, 945, 45)
+
 def corrPlot1000_2500(dm):
 
 	"""
@@ -254,6 +311,32 @@ def corrPlot2500(dm):
 
 	corrPlot(dm, 2445, 2445)
 	corrExample(dm, 2445, 2445)
+
+def corrPlot2500_1000(dm):
+
+	"""
+	A correlation plot between the behavioral response in the 2500 ms SOA and
+	the pupil trace in 1000 ms SOA.
+
+	Arguments:
+	dm				--	A DataMatrix.
+	"""
+
+	corrPlot(dm, 2445, 945)
+	corrExample(dm, 2445, 945)
+
+def corrPlot2500_100(dm):
+
+	"""
+	A correlation plot between the behavioral response in the 2500 ms SOA and
+	the pupil trace in 100 ms SOA.
+
+	Arguments:
+	dm				--	A DataMatrix.
+	"""
+
+	corrPlot(dm, 2445, 45)
+	corrExample(dm, 2445, 45)
 
 @cachedArray
 def corrTrace(dm, soaBehav, soaPupil, dv='correct', suffix='', \
@@ -314,13 +397,52 @@ def corrTrace(dm, soaBehav, soaPupil, dv='correct', suffix='', \
 	print 'Determine correlations ...'
 	aStats = np.empty( (traceLen, 2) )
 	for i in range(traceLen):
-		s, _i, r, p, se = linregress(aCuingEffect, aPupilEffect[:,i])
+		if stripCorr:
+			index, a, b = stripStd(aCuingEffect, aPupilEffect[:,i])
+		else:
+			a, b = aCuingEffect, aPupilEffect[:,i]
+		s, _i, r, p, se = linregress(a, b)
 		print 'soaBehav: %d, soaPupil: %d' % (soaBehav, soaPupil)
-		print '%d: r = %.4f, p = %.4f' % (i, r, p)
+		print '%d: r = %.4f, p = %.4f (N = %d)' % (i, r, p, len(a))
 		aStats[i,0] = r
 		aStats[i,1] = p
 	print 'Done'
 	return aStats
+
+def stripStd(a, b, thr=stripCorrThr):
+
+	"""
+	desc:
+		Remove element pairs from a pair of equally long arrays, where one
+		element of the pair deviates more than `thr` standard deviation from
+		the mean.
+
+	arguments:
+		a:
+			desc:	The first array.
+			type:	ndarray
+		b:
+			desc:	The second array.
+			type:	ndarray
+
+	keywords:
+		thr:
+			desc:	The std. dev. threshold, i.e. the maximum deviation from the
+					mean.
+			type:	[int, float]
+
+	returns:
+		desc:	A (index, a, b) tuple, where index is an array with the
+				preserved indices, and a and b are the stripped arrays.
+		type:	tuple
+	"""
+
+	maxA = np.mean(a) + thr * np.std(a)
+	minA = np.mean(a) - thr * np.std(a)
+	maxB = np.mean(b) + thr * np.std(b)
+	minB = np.mean(b) - thr * np.std(b)
+	i = np.where( (a <= maxA) & (a >= minA) & (b <= maxB) & (b >= minB) )[0]
+	return i, a[i], b[i]
 
 def cuingEffectBehav(dm, dv='response_time'):
 
@@ -438,8 +560,25 @@ def filter(dm):
 	dm['irt'] = 1./dm['response_time']
 	return dm
 
-def tracePlot(dm, traceParams=trialParams, suffix='', err=True, \
-	lumVar='cueLum', minSmp=200):
+def stdDevTrim(dm, thr=2):
+
+	"""
+	desc:
+		Remove all outliers based on RT or accuracy.
+	"""
+
+	for dv in 'rt', 'correct':
+
+		lEffect = []
+		for _dm in dm.group('subject_nr'):
+			val = _dm.select('cueValidity == "valid"')[dv].mean()
+			inv = _dm.select('cueValidity == "invalid"')[dv].mean()
+			lEffect.append(val - inv)
+
+		print lEffect
+
+def tracePlot(dm, traceParams=trialParams, suffix='', err=True,
+	lumVar='cueLum', minSmp=200, diff=True):
 
 	"""
 	A pupil-trace plot for a single epoch.
@@ -454,15 +593,17 @@ def tracePlot(dm, traceParams=trialParams, suffix='', err=True, \
 						(default=True)
 	lumVar			--	The variable that contains the luminance information.
 						(default='cueLum')
+	diff			--	Indicates whether the difference trace should be plotted
+						as well. (default=True)
 	"""
 
 	# At the moment we can only determine error bars for cueLum
 	assert(not err or lumVar == 'cueLum')
 	assert(lumVar in ['cueLum', 'targetLum'])
-	x1, y1, err1 = tk.getTraceAvg(dm.select('%s == "bright"' % lumVar), \
-		**traceParams)
-	x2, y2, err2 = tk.getTraceAvg(dm.select('%s == "dark"' % lumVar), \
-		**traceParams)
+	dmBright = dm.select('%s == "bright"' % lumVar)
+	dmDark = dm.select('%s == "dark"' % lumVar)
+	x1, y1, err1 = tk.getTraceAvg(dmBright, **traceParams)
+	x2, y2, err2 = tk.getTraceAvg(dmDark, **traceParams)
 	if err:
 		d = y2-y1
 		aErr = lmeTrace(dm, traceParams=traceParams, suffix=suffix, \
@@ -479,9 +620,13 @@ def tracePlot(dm, traceParams=trialParams, suffix='', err=True, \
 		plt.fill_between(x1, y1min, y1max, color=green[1], alpha=.25)
 		plt.fill_between(x2, y2min, y2max, color=blue[1], alpha=.25)
 		tk.markStats(plt.gca(), np.abs(aT), below=False, thr=2, minSmp=minSmp)
+	if diff:
+		plt.plot(x1, diffY+y2-y1, color=orange[1], label='Pupillary cuing effect')
 	if lumVar == 'cueLum':
-		plt.plot(x1, y1, color=green[1], label='Cue on bright')
-		plt.plot(x2, y2, color=blue[1], label='Cue on dark')
+		plt.plot(x1, y1, color=green[1], label='Cue on bright (N=%d)' \
+			% len(dmBright))
+		plt.plot(x2, y2, color=blue[1], label='Cue on dark (N=%d)' \
+			% len(dmDark))
 	elif lumVar == 'targetLum':
 		plt.plot(x1, y1, color=green[1], label='Target on bright')
 		plt.plot(x2, y2, color=blue[1], label='Target on dark')
@@ -510,7 +655,8 @@ def traceDiffPlot(dm, traceParams=trialParams, suffix='', err=True, \
 	d = y2-y1
 	plt.plot(d, color=color, label=label)
 
-def trialPlot(dm, soa, _show=show, err=True, minSmp=200, suffix=''):
+def trialPlot(dm, soa, _show=show, err=True, minSmp=200, suffix='', padding=0,
+	diff=True):
 
 	"""
 	A pupil-trace plot for the full trial epoch.
@@ -525,6 +671,9 @@ def trialPlot(dm, soa, _show=show, err=True, minSmp=200, suffix=''):
 	err				--	Indicates whether error bars should be drawn.
 						(default=True)
 	suffix			--	A suffix to identify the trace. (default='')
+	padding			--	A padding time to be added to the traceLen. (default=0)
+	diff			--	Indicates whether the difference trace should be plotted
+						as well. (default=True)
 	"""
 
 	assert(soa in dm.unique('soa'))
@@ -534,7 +683,7 @@ def trialPlot(dm, soa, _show=show, err=True, minSmp=200, suffix=''):
 	plt.axhline(1, linestyle='--', color='black')
 	dm = dm.select('soa == %d' % soa)
 	# Determine the trace length and create the trace plot
-	traceLen = soa + 105
+	traceLen = soa + 105 + padding
 	traceParams = trialParams.copy()
 	traceParams['traceLen'] = traceLen
 	tracePlot(dm, traceParams=traceParams, err=err, suffix='.%d%s' % (soa, \
@@ -548,10 +697,17 @@ def trialPlot(dm, soa, _show=show, err=True, minSmp=200, suffix=''):
 	plt.legend(frameon=False)
 	plt.xlabel('Time since cue onset (ms)')
 	plt.ylabel('Pupil size (norm.)')
-	if _show:
-		plt.ylim(.98, 1.07)
 	plt.yticks([1,1.025, 1.05])
 	plt.xticks(range(0, 2501, 500))
+	if diff:
+		plt.ylim(.92, 1.07)
+		plt.axhline(diffY, linestyle='--', color='black')
+		plt.twinx()
+		plt.tick_params(axis="y")
+		plt.ylim(.92, 1.07)
+		plt.yticks([.925,.95, .975], [-.025, 0, .025])
+	else:
+		plt.ylim(.98, 1.07)
 	if _show:
 		Plot.save('trialPlot.%d' % soa, 'trialPlot', show=show)
 
@@ -576,6 +732,18 @@ def trialPlot1000(dm):
 	"""
 
 	trialPlot(dm, soa=945)
+	
+def trialPlot1000padded(dm):
+
+	"""
+	A pupil-trace plot for the full trial epoch in 1000 ms SOA condition, padded
+	with some extra time.
+
+	Arguments:
+	dm				--	A DataMatrix.
+	"""
+
+	trialPlot(dm, soa=945, padding=500, suffix='.padded')
 
 def trialPlot2500(dm):
 
@@ -588,13 +756,16 @@ def trialPlot2500(dm):
 
 	trialPlot(dm, soa=2445)
 
-def lmeBehavior(dm):
+def lmeBehavior(dm, suffix=''):
 
 	"""
 	Analyzes the behavioral data with mixed effects.
 
 	Arguments:
 	dm		--	A DataMatrix.
+	
+	keywords:
+	suffix	--	A filename suffix.
 	"""
 
 	global R
@@ -669,7 +840,52 @@ def lmeBehavior(dm):
 		plt.plot(lSoa, lInv, 'o-', color=invColor, label='Invalid (N=%d)' % \
 			nInv)
 		plt.legend(frameon=False)
-	Plot.save('behavior', 'behavior', show=show)
+	Plot.save('behavior%s' % suffix, 'behavior', show=show)
+	
+def lmeBehaviorBrightness(dm):
+	
+	"""
+	Analyzes the behavioral data with mixed effects, separately for the bright
+	and dark cue.
+
+	Arguments:
+	dm		--	A DataMatrix.
+	"""	
+	
+	global R
+	try:
+		R
+	except:
+		R = RBridge()
+	dm = dm.addField('targetLum', dtype=str, default='bright')
+	dm['targetLum'][(dm['cueLum'] == "dark") \
+		& (dm['cueValidity'] == "valid")] = 'dark'
+	dm['targetLum'][(dm['cueLum'] == "bright") \
+		& (dm['cueValidity'] == "invalid")] = 'dark'
+	print '*** Target luminance\n'
+	R.load(dm)
+	lm = R.lmer('irt ~ targetLum * cueValidity * soa + (1|subject_nr)')
+	lm._print('iRt')
+	lm = R.lmer('correct ~ targetLum * cueValidity * soa + (1|subject_nr)')
+	lm._print('Accuracy')
+	for soa in dm.unique('soa'):
+		R.load(dm.select('soa == %d' % soa, verbose=False))
+		lm = R.lmer('irt ~ targetLum * cueValidity + (1|subject_nr)')
+		lm._print('iRt (%d)' % soa)
+		lm = R.lmer('correct ~ targetLum * cueValidity + (1|subject_nr)')
+		lm._print('Accuracy (%d)' % soa)
+	print '*** Cue luminance\n'
+	R.load(dm)
+	lm = R.lmer('irt ~ cueLum * cueValidity * soa + (1|subject_nr)')
+	lm._print('iRt')
+	lm = R.lmer('correct ~ cueLum * cueValidity * soa + (1|subject_nr)')
+	lm._print('Accuracy')
+	for soa in dm.unique('soa'):
+		R.load(dm.select('soa == %d' % soa, verbose=False))
+		lm = R.lmer('irt ~ cueLum * cueValidity + (1|subject_nr)')
+		lm._print('iRt (%d)' % soa)
+		lm = R.lmer('correct ~ cueLum * cueValidity + (1|subject_nr)')
+		lm._print('Accuracy (%d)' % soa)
 
 @cachedArray
 def lmeTrace(dm, traceParams=trialParams, suffix=''):

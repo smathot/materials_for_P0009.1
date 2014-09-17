@@ -3370,9 +3370,9 @@
      inkscape:document-units="px"
      inkscape:current-layer="g3434"
      showgrid="false"
-     inkscape:window-width="1920"
-     inkscape:window-height="1016"
-     inkscape:window-x="1364"
+     inkscape:window-width="1200"
+     inkscape:window-height="1580"
+     inkscape:window-x="1678"
      inkscape:window-y="-3"
      inkscape:window-maximized="1"
      showguides="true"
@@ -4071,7 +4071,7 @@
            x="200.57935"
            y="331.95526"
            style="font-size:10px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:start;line-height:125%;writing-mode:lr-tb;text-anchor:start;fill:#2e3436;font-family:Arial;-inkscape-font-specification:Arial"
-           id="tspan5609">100, 1000, or 25000 ms</tspan></text>
+           id="tspan5609">100, 1000, or 2500 ms</tspan></text>
     </g>
   </g>
 </svg>

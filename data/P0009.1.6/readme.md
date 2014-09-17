@@ -64,8 +64,7 @@ The actual analysis is performed by the script `analyze.py`, which takes various
 
 Command:
 
-	python analyze.py @__fullPathway__
-
+	python analyze.py @full
 
 Output:
 

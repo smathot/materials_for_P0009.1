@@ -47,6 +47,12 @@ Keywords: pupillometry, visual attention, inhibition of return, eye movements
 
 ~
 
+# Appendix
+
+%-- include: "md/appendix.md" --%
+
+~
+
 # Author contributions
 
 All authors contributed to the study design and contributed to writing of the manuscript. SM developed the experiment and analyzed the data.

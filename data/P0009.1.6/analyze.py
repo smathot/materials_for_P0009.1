@@ -23,5 +23,22 @@ from analysis import helpers, parse
 Tools.analysisLoop(
 	parse.getDataMatrix(cacheId='data'),
 	mods=[helpers],
-	pre=['filter']
+	pre=['filter'],
+	full=[
+		'dontShow',
+		'descriptives',
+		'lmeBehavior',
+		'trialPlot100',
+		'trialPlot1000',
+		'trialPlot2500',
+		'corrPlot100_100',
+		'corrPlot100_1000',
+		'corrPlot100_2500',
+		'corrPlot1000_100',
+		'corrPlot1000_2500',
+		'corrPlot1000',
+		'corrPlot2500',
+		'corrPlot2500_100',
+		'corrPlot2500_1000'
+		]
 	)
