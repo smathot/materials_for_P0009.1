@@ -21,7 +21,7 @@ import sys
 from academicmarkdown import build, git, tools
 import myZoteroCredentials
 import time
-version = '2.2.1'
+version = '2.2.2'
 build.path += ['svg', 'md', 'tables']
 build.zoteroApiKey = myZoteroCredentials.zoteroApiKey
 build.zoteroLibraryId = myZoteroCredentials.zoteroLibraryId
