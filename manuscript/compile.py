@@ -21,7 +21,7 @@ import sys
 from academicmarkdown import build, git, tools
 import myZoteroCredentials
 import time
-version = '2.2.2'
+version = '2.2.3'
 build.path += ['svg', 'md', 'tables']
 build.zoteroApiKey = myZoteroCredentials.zoteroApiKey
 build.zoteroLibraryId = myZoteroCredentials.zoteroLibraryId
@@ -37,7 +37,7 @@ else:
 	build.setStyle('letter-classic')
 	build.pdfHeader = 'Coverletter [v%s; %s; %s]' % (version,
 		time.strftime('%c'), git.commitHash())
-	build.PDF('md/coverletter.2.2.2.md', 'coverletter-2.2.2.pdf',
+	build.PDF('md/coverletter.%s.md' % version, 'coverletter-%s.pdf' % version,
 		lineNumbers=False)
-	build.DOC('md/coverletter.2.2.2.md', 'coverletter-2.2.2.doc')
-	build.ODT('md/coverletter.2.2.2.md', 'coverletter-2.2.2.odt')
+	build.DOC('md/coverletter.%s.md' % version, 'coverletter-%s.doc' % version)
+	build.ODT('md/coverletter.%s.md' % version, 'coverletter-%s.odt' % version)
